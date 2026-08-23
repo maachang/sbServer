@@ -2,7 +2,7 @@
 
 `sdServer` は、Stable Diffusion サーバー（例: `stable-diffusion.cpp` などの OpenAI 互換 `/v1/images/generations` エンドポイントを持つサーバー）と連携し、Webブラウザから直感的に画像生成・履歴管理・再生成を行える Web アプリケーションです。
 
-超軽量 Web フレームワーク `maachang` ベースで構築されているので、bunをインストールして、maachang(https://github.com/maachang/maachang)リポジトリをcloneして、$MAACHANG_HOME + PATH=$PATH:$MAACHANG_HOME/bin の環境変数を設定する必要があります。
+超軽量 Web フレームワーク `maachang` ベースで構築されているので、bunをインストールして、maachang(https://github.com/maachang/maachang) リポジトリをcloneして、$MAACHANG_HOME + PATH=$PATH:$MAACHANG_HOME/bin の環境変数を設定する必要があります。
 
 ---
 
