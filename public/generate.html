@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像生成 - sdServer</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f4f6f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background: #ffffff;
+            border-bottom: 1px solid #e1e4e8;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.15s ease, border-color 0.15s ease;
+            border: 1px solid transparent;
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: #ffffff;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: #1d4ed8;
+        }
+        .btn-secondary {
+            background: #ffffff;
+            color: #4b5563;
+            border-color: #d1d5db;
+        }
+        .btn-secondary:hover {
+            background: #f3f4f6;
+        }
+        .btn-danger {
+            background: #ffffff;
+            color: #dc2626;
+            border-color: #fecaca;
+        }
+        .btn-danger:hover {
+            background: #fee2e2;
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 24px 16px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            padding: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+        textarea, input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+        }
+        textarea:focus, input:focus, select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
+        }
+        textarea {
+            resize: vertical;
+            min-height: 90px;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        /* プレビュー表示エリア */
+        .preview-pane {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 400px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 2px dashed #d1d5db;
+            position: relative;
+            overflow: hidden;
+        }
+        .preview-img {
+            max-width: 100%;
+            max-height: 520px;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+        .placeholder-text {
+            color: #9ca3af;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid rgba(37,99,235,0.2);
+            border-left-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 経過時間表示用 */
+        .timer-display {
+            font-size: 28px;
+            font-weight: 700;
+            color: #2563eb;
+            font-variant-numeric: tabular-nums;
+            margin-bottom: 4px;
+        }
+
+        .alert-error {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .info-box {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .result-meta {
+            margin-top: 12px;
+            padding: 10px 14px;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #166534;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-title">
+        <a href="/menu.html" style="text-decoration: none; color: inherit;">🎨 sdServer</a>
+        <span id="pageModeBadge" style="font-size: 13px; font-weight: normal; color: #6b7280; margin-left: 8px;">新規画像生成</span>
+    </div>
+    <div>
+        <a href="/menu.html" class="btn btn-secondary">一覧へ戻る</a>
+    </div>
+</header>
+
+<div class="container">
+    <!-- 左ペイン: 生成フォーム -->
+    <div class="card">
+        <div id="editAlert" class="info-box">
+            <span>✏️ <strong>画像編集モード:</strong> 既存画像のプロンプト・設定を元に再生成/調整します。</span>
+        </div>
+        <div id="errorBox" class="alert-error"></div>
+
+        <form id="genForm">
+            <input type="hidden" id="parentId" value="">
+
+            <div class="form-group">
+                <label for="prompt">プロンプト (Prompt) <span style="color:red">*</span></label>
+                <textarea id="prompt" placeholder="例: 1girl, cute, masterpiece, best quality, anime style..." required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="negativePrompt">ネガティブプロンプト (Negative Prompt)</label>
+                <textarea id="negativePrompt" placeholder="例: worst quality, low quality, bad anatomy, blurry..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="resolutionPreset">解像度プリセット (Resolution)</label>
+                <select id="resolutionPreset">
+                    <option value="512x512">512 x 512 (標準・正方形)</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="width">幅 (Width)</label>
+                    <input type="number" id="width" value="512" min="64" max="2048" step="64" />
+                </div>
+                <div class="form-group">
+                    <label for="height">高さ (Height)</label>
+                    <input type="number" id="height" value="512" min="64" max="2048" step="64" />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="steps">ステップ数 (Steps)</label>
+                    <input type="number" id="steps" value="20" min="1" max="150" />
+                </div>
+                <div class="form-group">
+                    <label for="cfgScale">CFG Scale</label>
+                    <input type="number" id="cfgScale" value="7.0" step="0.5" min="1" max="30" />
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="seed">シード値 (Seed: -1でランダム)</label>
+                    <input type="number" id="seed" value="-1" />
+                </div>
+                <div class="form-group">
+                    <label for="sampler">サンプラー (Sampler)</label>
+                    <select id="sampler">
+                        <option value="euler_a">Euler a</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-top: 8px;">
+                <button type="submit" id="submitBtn" class="btn btn-primary" style="flex: 1;">
+                    🚀 画像を生成する
+                </button>
+                <button type="button" id="cancelBtn" class="btn btn-danger" style="display: none;">
+                    🛑 生成を中止
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 右ペイン: プレビュー＆結果 -->
+    <div class="card" style="display: flex; flex-direction: column;">
+        <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 16px;">生成プレビュー</h3>
+        <div id="previewPane" class="preview-pane">
+            <div id="loadingIndicator" style="display: none; text-align: center;">
+                <div class="spinner"></div>
+                <div id="elapsedTimer" class="timer-display">0.0s</div>
+                <p style="font-size: 14px; color: #4b5563; margin-top: 4px;">
+                    sd-server で画像を生成中...<br>
+                    <span style="font-size:12px; color:#9ca3af;">(サーバーの処理完了までお待ちください)</span>
+                </p>
+            </div>
+            <div id="emptyPreview" class="placeholder-text">
+                ここに生成された画像が表示されます
+            </div>
+            <img id="resultImage" class="preview-img" style="display: none;" alt="Generated Result">
+        </div>
+
+        <div id="resultMeta" class="result-meta">
+            🎉 生成完了: 所要時間 <strong id="spentTimeLabel">0.00 秒</strong> (Seed: <span id="usedSeedLabel">-</span>)
+        </div>
+
+        <div id="resultActions" style="margin-top: 16px; display: none; justify-content: flex-end; gap: 8px;">
+            <a id="viewInMenuBtn" href="/menu.html" class="btn btn-secondary">一覧で確認する</a>
+            <a id="downloadBtn" href="#" download="generated.png" class="btn btn-primary">💾 ダウンロード</a>
+        </div>
+    </div>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const editId = urlParams.get('id');
+    let timerInterval = null;
+    let currentAbortController = null;
+
+    // 解像度プリセット変更時
+    document.getElementById('resolutionPreset').addEventListener('change', (e) => {
+        const [w, h] = e.target.value.split('x');
+        if (w && h) {
+            document.getElementById('width').value = w;
+            document.getElementById('height').value = h;
+        }
+    });
+
+    async function loadConfig() {
+        try {
+            const res = await fetch('/api/config');
+            const data = await res.json();
+            if (!data.success) return;
+
+            const defs = data.defaults || {};
+            const opts = data.options || {};
+
+            // 解像度プリセット反映
+            if (opts.resolutions && Array.isArray(opts.resolutions)) {
+                const resSelect = document.getElementById('resolutionPreset');
+                resSelect.innerHTML = '';
+                opts.resolutions.forEach(r => {
+                    const opt = document.createElement('option');
+                    opt.value = `${r.width}x${r.height}`;
+                    opt.textContent = r.label || `${r.width} x ${r.height}`;
+                    if (r.width === (defs.width || 512) && r.height === (defs.height || 512)) {
+                        opt.selected = true;
+                    }
+                    resSelect.appendChild(opt);
+                });
+            }
+
+            // サンプラー候補反映
+            if (opts.samplers && Array.isArray(opts.samplers)) {
+                const samplerSelect = document.getElementById('sampler');
+                samplerSelect.innerHTML = '';
+                opts.samplers.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.value;
+                    opt.textContent = s.label || s.value;
+                    if (s.value === defs.sampler_name) {
+                        opt.selected = true;
+                    }
+                    samplerSelect.appendChild(opt);
+                });
+            }
+
+            // デフォルト値の反映
+            if (!editId) {
+                if (defs.width) document.getElementById('width').value = defs.width;
+                if (defs.height) document.getElementById('height').value = defs.height;
+                if (defs.steps) document.getElementById('steps').value = defs.steps;
+                if (defs.cfg_scale) document.getElementById('cfgScale').value = defs.cfg_scale;
+                if (defs.seed !== undefined) document.getElementById('seed').value = defs.seed;
+            }
+
+            if (opts.stepsRange) {
+                if (opts.stepsRange.min !== undefined) document.getElementById('steps').min = opts.stepsRange.min;
+                if (opts.stepsRange.max !== undefined) document.getElementById('steps').max = opts.stepsRange.max;
+            }
+            if (opts.cfgScaleRange) {
+                if (opts.cfgScaleRange.min !== undefined) document.getElementById('cfgScale').min = opts.cfgScaleRange.min;
+                if (opts.cfgScaleRange.max !== undefined) document.getElementById('cfgScale').max = opts.cfgScaleRange.max;
+                if (opts.cfgScaleRange.step !== undefined) document.getElementById('cfgScale').step = opts.cfgScaleRange.step;
+            }
+
+        } catch (e) {
+            console.error('設定ロードエラー:', e);
+        }
+    }
+
+    async function initPage() {
+        await loadConfig();
+
+        if (editId) {
+            document.getElementById('pageModeBadge').textContent = `画像編集 (元画像 #${editId})`;
+            document.getElementById('editAlert').style.display = 'block';
+            document.getElementById('parentId').value = editId;
+
+            try {
+                const res = await fetch(`/api/image?id=${editId}`);
+                const json = await res.json();
+                if (json.success && json.data) {
+                    const item = json.data;
+                    document.getElementById('prompt').value = item.prompt || '';
+                    document.getElementById('negativePrompt').value = item.negative_prompt || '';
+                    document.getElementById('width').value = item.width || 512;
+                    document.getElementById('height').value = item.height || 512;
+                    document.getElementById('steps').value = item.steps || 20;
+                    document.getElementById('cfgScale').value = item.cfg_scale || 7.0;
+                    document.getElementById('seed').value = item.seed !== undefined ? item.seed : -1;
+                    if (item.sampler_name) {
+                        document.getElementById('sampler').value = item.sampler_name;
+                    }
+                    const resKey = `${item.width}x${item.height}`;
+                    const resSelect = document.getElementById('resolutionPreset');
+                    if (resSelect.querySelector(`option[value="${resKey}"]`)) {
+                        resSelect.value = resKey;
+                    }
+
+                    if (item.image_path) {
+                        const img = document.getElementById('resultImage');
+                        img.src = item.image_path;
+                        img.style.display = 'block';
+                        document.getElementById('emptyPreview').style.display = 'none';
+                    }
+                }
+            } catch (e) {
+                console.error('元画像取得エラー:', e);
+            }
+        }
+    }
+
+    // 手動キャンセルボタン
+    document.getElementById('cancelBtn').addEventListener('click', () => {
+        if (currentAbortController) {
+            currentAbortController.abort();
+            currentAbortController = null;
+        }
+    });
+
+    window.addEventListener('beforeunload', () => {
+        if (currentAbortController) {
+            currentAbortController.abort();
+        }
+    });
+
+    // 生成フォーム送信
+    document.getElementById('genForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const submitBtn = document.getElementById('submitBtn');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const errorBox = document.getElementById('errorBox');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const emptyPreview = document.getElementById('emptyPreview');
+        const resultImage = document.getElementById('resultImage');
+        const resultActions = document.getElementById('resultActions');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const resultMeta = document.getElementById('resultMeta');
+        const spentTimeLabel = document.getElementById('spentTimeLabel');
+        const usedSeedLabel = document.getElementById('usedSeedLabel');
+        const elapsedTimer = document.getElementById('elapsedTimer');
+
+        errorBox.style.display = 'none';
+        errorBox.textContent = '';
+        resultMeta.style.display = 'none';
+        submitBtn.disabled = true;
+        cancelBtn.style.display = 'inline-flex';
+        emptyPreview.style.display = 'none';
+        resultImage.style.display = 'none';
+        resultActions.style.display = 'none';
+        loadingIndicator.style.display = 'block';
+
+        const startTimestamp = Date.now();
+        elapsedTimer.textContent = '0.0s';
+        if (timerInterval) clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+            const elapsed = ((Date.now() - startTimestamp) / 1000).toFixed(1);
+            elapsedTimer.textContent = `${elapsed}s`;
+        }, 100);
+
+        currentAbortController = new AbortController();
+
+        const payload = {
+            prompt: document.getElementById('prompt').value.trim(),
+            negative_prompt: document.getElementById('negativePrompt').value.trim(),
+            width: parseInt(document.getElementById('width').value, 10),
+            height: parseInt(document.getElementById('height').value, 10),
+            steps: parseInt(document.getElementById('steps').value, 10),
+            cfg_scale: parseFloat(document.getElementById('cfgScale').value),
+            seed: parseInt(document.getElementById('seed').value, 10),
+            sampler_name: document.getElementById('sampler').value,
+            parent_id: document.getElementById('parentId').value ? parseInt(document.getElementById('parentId').value, 10) : null
+        };
+
+        try {
+            const res = await fetch('/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+                signal: currentAbortController.signal
+            });
+
+            const data = await res.json();
+            clearInterval(timerInterval);
+            loadingIndicator.style.display = 'none';
+            submitBtn.disabled = false;
+            cancelBtn.style.display = 'none';
+            currentAbortController = null;
+
+            if (!data.success) {
+                let msg = data.error || '画像生成に失敗しました';
+                if (data.errors && Array.isArray(data.errors)) {
+                    msg = data.errors.map(err => err.message).join('\n');
+                }
+                const spentSec = ((Date.now() - startTimestamp) / 1000).toFixed(2);
+                errorBox.textContent = `${msg} (エラーまでの経過時間: ${spentSec}秒)`;
+                errorBox.style.display = 'block';
+                emptyPreview.style.display = 'block';
+                return;
+            }
+
+            // 成功時
+            const finalSec = data.durationSec || ((Date.now() - startTimestamp) / 1000).toFixed(2);
+            spentTimeLabel.textContent = `${finalSec} 秒`;
+            usedSeedLabel.textContent = data.data.seed !== undefined ? data.data.seed : '-';
+            resultMeta.style.display = 'block';
+
+            resultImage.src = data.data.image_path;
+            resultImage.style.display = 'block';
+            downloadBtn.href = data.data.image_path;
+            resultActions.style.display = 'flex';
+
+        } catch (e) {
+            clearInterval(timerInterval);
+            loadingIndicator.style.display = 'none';
+            submitBtn.disabled = false;
+            cancelBtn.style.display = 'none';
+            currentAbortController = null;
+
+            const spentSec = ((Date.now() - startTimestamp) / 1000).toFixed(2);
+            if (e.name === 'AbortError') {
+                errorBox.textContent = `🛑 生成処理がキャンセルされました。(経過時間: ${spentSec}秒)`;
+            } else {
+                errorBox.textContent = `通信エラー: ${e.message} (経過時間: ${spentSec}秒)`;
+            }
+            errorBox.style.display = 'block';
+            emptyPreview.style.display = 'block';
+        }
+    });
+
+    initPage();
+</script>
+
+</body>
+</html>

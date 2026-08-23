@@ -1,0 +1,8 @@
+{
+  "dbPath": "./data/session.db",
+  "cookieName": "sdServer_sid",
+  "timeoutMin": 60,
+  "sameSite": "Lax",
+  "httpOnly": true,
+  "secure": false
+}

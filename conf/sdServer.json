@@ -1,0 +1,33 @@
+{
+  "baseUrl": "http://192.168.0.229:8080",
+  "endpoint": "/v1/images/generations",
+  "timeoutMs": 600000,
+  "defaults": {
+    "width": 512,
+    "height": 512,
+    "steps": 20,
+    "cfg_scale": 7.0,
+    "sampler_name": "euler_a",
+    "seed": -1
+  },
+  "options": {
+    "resolutions": [
+      { "width": 256, "height": 256, "label": "256 x 256 (超軽量)" },
+      { "width": 512, "height": 512, "label": "512 x 512 (標準・正方形)" },
+      { "width": 512, "height": 768, "label": "512 x 768 (縦長)" },
+      { "width": 768, "height": 512, "label": "768 x 512 (横長)" },
+      { "width": 768, "height": 768, "label": "768 x 768 (高解像度)" },
+      { "width": 1024, "height": 1024, "label": "1024 x 1024 (SDXL等)" }
+    ],
+    "samplers": [
+      { "value": "euler_a", "label": "Euler a (Euler Ancestral)" },
+      { "value": "euler", "label": "Euler" },
+      { "value": "dpm++_2m", "label": "DPM++ 2M" },
+      { "value": "dpm++_2m_karras", "label": "DPM++ 2M Karras" },
+      { "value": "dpm++_sde", "label": "DPM++ SDE" },
+      { "value": "ddim", "label": "DDIM" }
+    ],
+    "stepsRange": { "min": 1, "max": 150 },
+    "cfgScaleRange": { "min": 1.0, "max": 30.0, "step": 0.5 }
+  }
+}

@@ -1,0 +1,6 @@
+node_modules/
+data/
+log/
+*.local.json
+.DS_Store
+.claudeWork/

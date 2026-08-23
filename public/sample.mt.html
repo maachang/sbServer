@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>JHTML Sample</title>
+    <style>
+        body { font-family: sans-serif; margin: 40px; }
+        .box { border: 1px solid #ddd; padding: 16px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>JHTML テンプレートサンプル</h1>
+    <div class="box">
+        <% 
+            const now = new Date().toLocaleString('ja-JP');
+            const items = ['りんご', 'みかん', 'バナナ'];
+        %>
+        <p>現在日時: ${now}</p>
+        <h3>アイテム一覧:</h3>
+        <ul>
+            <% for (const item of items) { %>
+                <li><%= item %></li>
+            <% } %>
+        </ul>
+    </div>
+</body>
+</html>

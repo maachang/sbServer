@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生成画像一覧 - sdServer</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f4f6f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background: #ffffff;
+            border-bottom: 1px solid #e1e4e8;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.15s ease, border-color 0.15s ease;
+            border: 1px solid transparent;
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: #ffffff;
+        }
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+        .btn-secondary {
+            background: #ffffff;
+            color: #4b5563;
+            border-color: #d1d5db;
+        }
+        .btn-secondary:hover {
+            background: #f3f4f6;
+        }
+        .btn-danger {
+            background: #ffffff;
+            color: #dc2626;
+            border-color: #fecaca;
+        }
+        .btn-danger:hover {
+            background: #fee2e2;
+        }
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 12px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 24px 16px;
+        }
+
+        /* 検索バー */
+        .search-section {
+            background: #ffffff;
+            padding: 16px 20px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .search-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+        }
+        .search-input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
+        }
+
+        /* 統計・件数 */
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        /* グリッドレイアウト */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+        }
+        .card-img-wrap {
+            position: relative;
+            width: 100%;
+            padding-top: 100%; /* 1:1 Aspect Ratio */
+            background: #e5e7eb;
+            overflow: hidden;
+        }
+        .card-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            cursor: pointer;
+        }
+        .card-body {
+            padding: 14px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .card-prompt {
+            font-size: 13px;
+            color: #1f2937;
+            font-weight: 500;
+            margin-bottom: 8px;
+            line-height: 1.4;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-all;
+        }
+        .card-meta {
+            font-size: 11px;
+            color: #6b7280;
+            margin-bottom: 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .badge {
+            background: #f3f4f6;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .badge-time {
+            background: #e0f2fe;
+            color: #0369a1;
+            font-weight: 600;
+        }
+        .card-actions {
+            margin-top: auto;
+            display: flex;
+            gap: 8px;
+            border-top: 1px solid #f3f4f6;
+            padding-top: 10px;
+        }
+
+        /* 空状態・ローディング */
+        .empty-state, .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6b7280;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px dashed #d1d5db;
+        }
+
+        /* ページネーション */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 32px;
+        }
+
+        /* モーダル画像プレビュー */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.85);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal.open {
+            display: flex;
+        }
+        .modal-content {
+            max-width: 90vw;
+            max-height: 90vh;
+            border-radius: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-title">
+        <span>🎨 sdServer</span>
+        <span style="font-size: 13px; font-weight: normal; color: #6b7280; margin-left: 8px;">画像管理・生成</span>
+    </div>
+    <div class="header-actions">
+        <a href="/generate.html" class="btn btn-primary">➕ 新規作成</a>
+    </div>
+</header>
+
+<div class="container">
+    <!-- 検索フォーム -->
+    <div class="search-section">
+        <input type="text" id="searchInput" class="search-input" placeholder="プロンプトやネガティブプロンプトで検索..." />
+        <button id="searchBtn" class="btn btn-secondary">🔍 検索</button>
+        <button id="clearBtn" class="btn btn-secondary" style="display: none;">クリア</button>
+    </div>
+
+    <div class="stats-bar">
+        <span id="resultCount">読み込み中...</span>
+    </div>
+
+    <!-- 一覧グリッド -->
+    <div id="imageGrid" class="grid"></div>
+
+    <!-- ローディング / 空表示 -->
+    <div id="loadingState" class="loading-state" style="display: none;">
+        読み込み中...
+    </div>
+    <div id="emptyState" class="empty-state" style="display: none;">
+        画像が見つかりませんでした。<br><br>
+        <a href="/generate.html" class="btn btn-primary">最初の画像を生成する</a>
+    </div>
+
+    <!-- ページネーション -->
+    <div id="pagination" class="pagination"></div>
+</div>
+
+<!-- プレビューモーダル -->
+<div id="previewModal" class="modal" onclick="closeModal()">
+    <img id="modalImg" class="modal-content" src="" alt="Preview">
+</div>
+
+<script>
+    let currentOffset = 0;
+    const limit = 20;
+    let currentKeyword = '';
+
+    async function loadImages(offset = 0) {
+        currentOffset = offset;
+        const grid = document.getElementById('imageGrid');
+        const loading = document.getElementById('loadingState');
+        const empty = document.getElementById('emptyState');
+        const countSpan = document.getElementById('resultCount');
+
+        grid.innerHTML = '';
+        loading.style.display = 'block';
+        empty.style.display = 'none';
+
+        try {
+            const params = new URLSearchParams({
+                keyword: currentKeyword,
+                limit: limit,
+                offset: currentOffset
+            });
+            const res = await fetch(`/api/images?${params.toString()}`);
+            const data = await res.json();
+
+            loading.style.display = 'none';
+
+            if (!data.success) {
+                alert('画像取得エラー: ' + (data.error || '不明なエラー'));
+                return;
+            }
+
+            countSpan.textContent = `全 ${data.total} 件 (${data.items.length} 件表示中)`;
+
+            if (data.items.length === 0) {
+                empty.style.display = 'block';
+                document.getElementById('pagination').innerHTML = '';
+                return;
+            }
+
+            data.items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'card';
+
+                const dateStr = item.created_at ? new Date(item.created_at).toLocaleString('ja-JP') : '';
+                
+                // 所要時間のフォーマット
+                let timeBadge = '';
+                if (item.generation_time_ms && item.generation_time_ms > 0) {
+                    const sec = (item.generation_time_ms / 1000).toFixed(1);
+                    timeBadge = `<span class="badge badge-time">⏱️ ${sec}s</span>`;
+                }
+
+                card.innerHTML = `
+                    <div class="card-img-wrap">
+                        <img src="${item.image_path}" alt="generated" class="card-img" onclick="openModal('${item.image_path}')" loading="lazy" />
+                    </div>
+                    <div class="card-body">
+                        <div class="card-prompt" title="${escapeHtml(item.prompt)}">${escapeHtml(item.prompt)}</div>
+                        <div class="card-meta">
+                            <span class="badge">${item.width}x${item.height}</span>
+                            <span class="badge">Steps: ${item.steps}</span>
+                            <span class="badge">CFG: ${item.cfg_scale}</span>
+                            ${timeBadge}
+                            <span class="badge">${dateStr}</span>
+                        </div>
+                        <div class="card-actions">
+                            <a href="/generate.html?id=${item.id}" class="btn btn-secondary btn-sm" style="flex:1;">✏️ 編集</a>
+                            <button onclick="deleteImage(${item.id})" class="btn btn-danger btn-sm">🗑️ 削除</button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            renderPagination(data.total, data.limit, data.offset);
+
+        } catch (e) {
+            loading.style.display = 'none';
+            alert('通信エラー: ' + e.message);
+        }
+    }
+
+    function renderPagination(total, limit, offset) {
+        const pag = document.getElementById('pagination');
+        pag.innerHTML = '';
+        const totalPages = Math.ceil(total / limit);
+        if (totalPages <= 1) return;
+
+        const currentPage = Math.floor(offset / limit) + 1;
+
+        if (currentPage > 1) {
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'btn btn-secondary btn-sm';
+            prevBtn.textContent = '前へ';
+            prevBtn.onclick = () => loadImages((currentPage - 2) * limit);
+            pag.appendChild(prevBtn);
+        }
+
+        const info = document.createElement('span');
+        info.style.alignSelf = 'center';
+        info.style.fontSize = '13px';
+        info.textContent = `ページ ${currentPage} / ${totalPages}`;
+        pag.appendChild(info);
+
+        if (currentPage < totalPages) {
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'btn btn-secondary btn-sm';
+            nextBtn.textContent = '次へ';
+            nextBtn.onclick = () => loadImages(currentPage * limit);
+            pag.appendChild(nextBtn);
+        }
+    }
+
+    async function deleteImage(id) {
+        if (!confirm('この画像を削除しますか？')) return;
+
+        try {
+            const res = await fetch('/api/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id })
+            });
+            const data = await res.json();
+            if (data.success) {
+                loadImages(currentOffset);
+            } else {
+                alert('削除失敗: ' + (data.error || '不明なエラー'));
+            }
+        } catch (e) {
+            alert('通信エラー: ' + e.message);
+        }
+    }
+
+    function openModal(src) {
+        const modal = document.getElementById('previewModal');
+        const img = document.getElementById('modalImg');
+        img.src = src;
+        modal.classList.add('open');
+    }
+
+    function closeModal() {
+        document.getElementById('previewModal').classList.remove('open');
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    // 検索イベント設定
+    document.getElementById('searchBtn').addEventListener('click', () => {
+        currentKeyword = document.getElementById('searchInput').value.trim();
+        document.getElementById('clearBtn').style.display = currentKeyword ? 'inline-flex' : 'none';
+        loadImages(0);
+    });
+
+    document.getElementById('searchInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            document.getElementById('searchBtn').click();
+        }
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+        document.getElementById('searchInput').value = '';
+        currentKeyword = '';
+        document.getElementById('clearBtn').style.display = 'none';
+        loadImages(0);
+    });
+
+    // 初期ロード
+    loadImages(0);
+</script>
+
+</body>
+</html>
