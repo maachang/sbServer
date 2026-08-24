@@ -345,8 +345,9 @@
 <div id="translationOverlay">
     <div class="overlay-card">
         <div class="spinner spinner-sm"></div>
+        <div id="translationTimer" style="font-size: 24px; font-weight: 700; color: #2563eb; font-variant-numeric: tabular-nums; margin-bottom: 6px;">0.0s</div>
         <h4 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 600;">プロンプトを翻訳中...</h4>
-        <p id="translationOverlayDesc" style="margin: 0; font-size: 13px; color: #6b7280;">ローカル LLM で英語へ変換しています。<br>しばらくお待ちください。</p>
+        <p id="translationOverlayDesc" style="margin: 0; font-size: 13px; color: #6b7280;">英語へ変換しています。<br>しばらくお待ちください。</p>
     </div>
 </div>
 
@@ -396,7 +397,7 @@
                 <div class="label-row">
                     <label for="prompt">プロンプト (Prompt / 日本語入力可) <span style="color:red">*</span></label>
                     <div style="display: flex; gap: 6px;">
-                        <button type="button" class="btn-xs" id="assistPromptBtn" title="入力した日本語から Stable Diffusion 向けにタグや構図をAI自動最適化・展開します" style="background: #fdf2f8; color: #db2777; border-color: #f472b6; font-weight: 600;">✨ AI最適化</button>
+                        <button type="button" class="btn-xs" id="assistPromptBtn" title="入力した日本語から Stable Diffusion 向けにタグや構図をAI自動最適化・展開したプレビューを確認します" style="background: #fdf2f8; color: #db2777; border-color: #f472b6; font-weight: 600;">✨ AI最適化プレビュー</button>
                         <button type="button" class="btn-xs" id="translatePromptBtn" title="入力した日本語の英語翻訳プレビューを確認します">🌐 翻訳プレビュー</button>
                     </div>
                 </div>
@@ -522,7 +523,6 @@
     let currentAbortController = null;
     let timerInterval = null;
     let serverDefaults = null;
-    let activeModelDisplayName = 'ローカルLLM';
     let lastGeneratedData = null; // 最新の生成結果キャッシュ
 
     const STORAGE_KEY = 'sdServer_saved_params';
@@ -532,18 +532,36 @@
     const saveConfirmModal = document.getElementById('saveConfirmModal');
     const confirmThumb = document.getElementById('confirmThumb');
 
+    let translationTimerInterval = null;
+
     function showOverlay(titleText, descText) {
         const titleEl = document.querySelector('#translationOverlay h4');
         if (titleEl) {
             titleEl.textContent = titleText || 'プロンプトを処理中...';
         }
         if (overlayDesc) {
-            overlayDesc.innerHTML = descText || `<strong>${escapeHtml(activeModelDisplayName)}</strong> で英語へ変換しています。<br>しばらくお待ちください。`;
+            overlayDesc.innerHTML = descText || '英語へ変換しています。<br>しばらくお待ちください。';
         }
+
+        const timerEl = document.getElementById('translationTimer');
+        if (timerEl) {
+            timerEl.textContent = '0.0s';
+            const startTime = Date.now();
+            if (translationTimerInterval) clearInterval(translationTimerInterval);
+            translationTimerInterval = setInterval(() => {
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                timerEl.textContent = `${elapsed}s`;
+            }, 100);
+        }
+
         if (overlay) overlay.style.display = 'flex';
     }
 
     function hideOverlay() {
+        if (translationTimerInterval) {
+            clearInterval(translationTimerInterval);
+            translationTimerInterval = null;
+        }
         if (overlay) overlay.style.display = 'none';
     }
 
@@ -610,7 +628,7 @@
     // 単語・文章翻訳共通関数
     async function translateText(text) {
         if (!text || !text.trim()) return '';
-        showOverlay('プロンプトを翻訳中...', `<strong>${escapeHtml(activeModelDisplayName)}</strong> で英語へ直訳変換しています。<br>しばらくお待ちください。`);
+        showOverlay('プロンプトを翻訳中...', '英語へ直訳変換しています。<br>しばらくお待ちください。');
         try {
             const res = await fetch('/api/translate', {
                 method: 'POST',
@@ -627,7 +645,7 @@
         }
     }
 
-    // AIプロンプト最適化ボタン
+    // AIプロンプト最適化プレビュー
     let lastOriginalPrompt = '';
     let lastOriginalNeg = '';
 
@@ -642,11 +660,8 @@
             return;
         }
 
-        lastOriginalPrompt = text;
-        lastOriginalNeg = negEl.value;
-
         btn.disabled = true;
-        showOverlay('✨ AIプロンプト最適化中...', `<strong>${escapeHtml(activeModelDisplayName)}</strong> で意図を解析し、Stable Diffusion 向けに構図・タグ・ネガティブを最適化しています...`);
+        showOverlay('✨ AIプロンプト最適化中...', 'プロンプトの意図を解析し、Stable Diffusion 向けに構図・タグ・ネガティブを最適化しています...<br>しばらくお待ちください。');
         try {
             const res = await fetch('/api/assist', {
                 method: 'POST',
@@ -658,27 +673,63 @@
             });
             const json = await res.json();
             if (json.success && json.prompt) {
-                promptEl.value = json.prompt;
-                if (json.negative_prompt) {
-                    negEl.value = json.negative_prompt;
-                }
-                saveParamsToStorage();
+                const optimizedPrompt = json.prompt;
+                const optimizedNeg = json.negative_prompt || '';
 
                 notice.style.display = 'block';
                 notice.style.background = '#fdf4ff';
                 notice.style.border = '1px solid #f0abfc';
                 notice.style.color = '#86198f';
                 notice.innerHTML = `
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span>✨ <strong>AI最適化完了:</strong> 「${escapeHtml(text)}」からSD向けタグとネガティブを展開しました</span>
-                        <button type="button" id="undoAssistBtn" class="btn-xs" style="margin-left: 8px; background: #fff; color: #db2777; border-color: #f472b6;">↩️ 元に戻す</button>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-weight: 700; font-size: 13px;">✨ AI最適化プレビュー</span>
+                        <button type="button" id="closeAssistNoticeBtn" class="btn-xs" style="background: transparent; border: none; cursor: pointer; color: #86198f; font-size: 14px; padding: 0 4px;" title="閉じる">✕</button>
+                    </div>
+                    <div style="margin-bottom: 6px;">
+                        <strong style="color: #4a044e; font-size: 12px;">最適化後プロンプト:</strong>
+                        <div style="background: #ffffff; border: 1px solid #f5d0fe; padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin-top: 2px; word-break: break-all; color: #1f2937;">
+                            ${escapeHtml(optimizedPrompt)}
+                        </div>
+                    </div>
+                    ${optimizedNeg ? `
+                    <div style="margin-bottom: 8px;">
+                        <strong style="color: #4a044e; font-size: 12px;">推奨ネガティブプロンプト:</strong>
+                        <div style="background: #ffffff; border: 1px solid #f5d0fe; padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin-top: 2px; word-break: break-all; color: #1f2937;">
+                            ${escapeHtml(optimizedNeg)}
+                        </div>
+                    </div>
+                    ` : ''}
+                    <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+                        <button type="button" id="applyAssistBtn" class="btn-xs" style="background: #a21caf; color: #ffffff; border: none; font-weight: 600; padding: 5px 12px; border-radius: 4px; cursor: pointer;">✅ 入力欄に適用する</button>
                     </div>
                 `;
-                document.getElementById('undoAssistBtn')?.addEventListener('click', () => {
-                    promptEl.value = lastOriginalPrompt;
-                    negEl.value = lastOriginalNeg;
-                    saveParamsToStorage();
+
+                document.getElementById('closeAssistNoticeBtn')?.addEventListener('click', () => {
                     notice.style.display = 'none';
+                });
+
+                document.getElementById('applyAssistBtn')?.addEventListener('click', () => {
+                    lastOriginalPrompt = promptEl.value;
+                    lastOriginalNeg = negEl.value;
+
+                    promptEl.value = optimizedPrompt;
+                    if (optimizedNeg) {
+                        negEl.value = optimizedNeg;
+                    }
+                    saveParamsToStorage();
+
+                    notice.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span>✨ <strong>AI最適化を適用しました</strong></span>
+                            <button type="button" id="undoAssistBtn" class="btn-xs" style="background: #fff; color: #db2777; border-color: #f472b6; cursor: pointer;">↩️ 元に戻す</button>
+                        </div>
+                    `;
+                    document.getElementById('undoAssistBtn')?.addEventListener('click', () => {
+                        promptEl.value = lastOriginalPrompt;
+                        negEl.value = lastOriginalNeg;
+                        saveParamsToStorage();
+                        notice.style.display = 'none';
+                    });
                 });
             } else {
                 notice.style.display = 'block';
@@ -705,10 +756,31 @@
         try {
             const translated = await translateText(text);
             notice.style.display = 'block';
-            notice.style.background = '#f3f4f6';
-            notice.style.border = 'none';
-            notice.style.color = '#4b5563';
-            notice.innerHTML = `<strong>英訳プレビュー:</strong> ${escapeHtml(translated)}`;
+            notice.style.background = '#f0fdf4';
+            notice.style.border = '1px solid #bbf7d0';
+            notice.style.color = '#166534';
+            notice.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <strong>🌐 英訳プレビュー:</strong>
+                    <button type="button" id="closePromptTransBtn" class="btn-xs" style="background: transparent; border: none; cursor: pointer; color: #166534; font-size: 14px;" title="閉じる">✕</button>
+                </div>
+                <div style="background: #ffffff; border: 1px solid #dcfce7; padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin-bottom: 6px; word-break: break-all; color: #1f2937;">
+                    ${escapeHtml(translated)}
+                </div>
+                <div style="display: flex; justify-content: flex-end;">
+                    <button type="button" id="applyTransPromptBtn" class="btn-xs" style="background: #15803d; color: #ffffff; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer;">✅ プロンプト欄に適用</button>
+                </div>
+            `;
+
+            document.getElementById('closePromptTransBtn')?.addEventListener('click', () => {
+                notice.style.display = 'none';
+            });
+
+            document.getElementById('applyTransPromptBtn')?.addEventListener('click', () => {
+                input.value = translated;
+                saveParamsToStorage();
+                notice.style.display = 'none';
+            });
         } catch (e) {
             notice.style.display = 'block';
             notice.textContent = '翻訳に失敗しました';
@@ -728,7 +800,31 @@
         try {
             const translated = await translateText(text);
             notice.style.display = 'block';
-            notice.innerHTML = `<strong>英訳プレビュー:</strong> ${escapeHtml(translated)}`;
+            notice.style.background = '#f0fdf4';
+            notice.style.border = '1px solid #bbf7d0';
+            notice.style.color = '#166534';
+            notice.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <strong>🌐 ネガティブ英訳プレビュー:</strong>
+                    <button type="button" id="closeNegTransBtn" class="btn-xs" style="background: transparent; border: none; cursor: pointer; color: #166534; font-size: 14px;" title="閉じる">✕</button>
+                </div>
+                <div style="background: #ffffff; border: 1px solid #dcfce7; padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin-bottom: 6px; word-break: break-all; color: #1f2937;">
+                    ${escapeHtml(translated)}
+                </div>
+                <div style="display: flex; justify-content: flex-end;">
+                    <button type="button" id="applyTransNegBtn" class="btn-xs" style="background: #15803d; color: #ffffff; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer;">✅ ネガティブ欄に適用</button>
+                </div>
+            `;
+
+            document.getElementById('closeNegTransBtn')?.addEventListener('click', () => {
+                notice.style.display = 'none';
+            });
+
+            document.getElementById('applyTransNegBtn')?.addEventListener('click', () => {
+                input.value = translated;
+                saveParamsToStorage();
+                notice.style.display = 'none';
+            });
         } catch (e) {
             notice.style.display = 'block';
             notice.textContent = '翻訳に失敗しました';
@@ -774,10 +870,6 @@
             const opts = data.options || {};
             const defs = data.defaults || {};
             serverDefaults = defs;
-
-            if (data.llm && data.llm.activeModelName) {
-                activeModelDisplayName = data.llm.activeModelName;
-            }
 
             // 解像度プリセット生成
             if (opts.resolutions && Array.isArray(opts.resolutions)) {

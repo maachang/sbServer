@@ -49,6 +49,7 @@
             text-decoration: none;
             transition: background 0.15s ease, border-color 0.15s ease;
             border: 1px solid transparent;
+            white-space: nowrap;
         }
         .btn-primary {
             background: #2563eb;
@@ -91,14 +92,16 @@
             padding: 16px 20px;
             border-radius: 8px;
             border: 1px solid #e5e7eb;
-            margin-bottom: 24px;
+            margin-bottom: 20px;
             display: flex;
             gap: 12px;
             align-items: center;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            flex-wrap: wrap;
         }
         .search-input {
             flex: 1;
+            min-width: 240px;
             padding: 10px 14px;
             border: 1px solid #d1d5db;
             border-radius: 6px;
@@ -109,14 +112,28 @@
             border-color: #2563eb;
             box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
         }
+
         .stats-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
             font-size: 14px;
-            color: #6b7280;
+            color: #4b5563;
             margin-bottom: 16px;
             padding: 0 4px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .per-page-select {
+            padding: 6px 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 13px;
+            background: #ffffff;
+            color: #374151;
+            outline: none;
+            cursor: pointer;
         }
 
         /* グリッドレイアウト */
@@ -223,11 +240,64 @@
         }
 
         /* ページネーション */
-        .pagination {
+        .pagination-container {
             display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 28px;
+            padding: 16px 20px;
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .pagination-info {
+            font-size: 13px;
+            color: #4b5563;
+        }
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        .page-btn {
+            min-width: 36px;
+            height: 36px;
+            padding: 0 10px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            background: #ffffff;
+            color: #374151;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
             justify-content: center;
-            gap: 8px;
-            margin-top: 32px;
+            transition: all 0.15s ease;
+        }
+        .page-btn:hover:not(:disabled) {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+        }
+        .page-btn.active {
+            background: #2563eb;
+            color: #ffffff;
+            border-color: #2563eb;
+            font-weight: 700;
+        }
+        .page-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .page-ellipsis {
+            padding: 0 6px;
+            color: #9ca3af;
+            font-size: 14px;
+            user-select: none;
         }
 
         /* モーダル画像プレビュー */
@@ -278,6 +348,14 @@
 
     <div class="stats-bar">
         <span id="resultCount">読み込み中...</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <label for="perPageSelect" style="font-size: 13px; color: #6b7280;">表示件数:</label>
+            <select id="perPageSelect" class="per-page-select">
+                <option value="20" selected>20 件 / ページ</option>
+                <option value="40">40 件 / ページ</option>
+                <option value="60">60 件 / ページ</option>
+            </select>
+        </div>
     </div>
 
     <!-- 一覧グリッド -->
@@ -289,11 +367,14 @@
     </div>
     <div id="emptyState" class="empty-state" style="display: none;">
         画像が見つかりませんでした。<br><br>
-        <a href="/generate.html" class="btn btn-primary">最初の画像を生成する</a>
+        <a href="/generate.html?mode=new" class="btn btn-primary">最初の画像を生成する</a>
     </div>
 
     <!-- ページネーション -->
-    <div id="pagination" class="pagination"></div>
+    <div id="paginationContainer" class="pagination-container" style="display: none;">
+        <div id="paginationInfo" class="pagination-info"></div>
+        <div id="paginationControls" class="pagination-controls"></div>
+    </div>
 </div>
 
 <!-- プレビューモーダル -->
@@ -303,7 +384,7 @@
 
 <script>
     let currentOffset = 0;
-    const limit = 20;
+    let limit = 20;
     let currentKeyword = '';
 
     async function loadImages(offset = 0) {
@@ -312,6 +393,7 @@
         const loading = document.getElementById('loadingState');
         const empty = document.getElementById('emptyState');
         const countSpan = document.getElementById('resultCount');
+        const pagContainer = document.getElementById('paginationContainer');
 
         grid.innerHTML = '';
         loading.style.display = 'block';
@@ -333,11 +415,20 @@
                 return;
             }
 
-            countSpan.textContent = `全 ${data.total} 件 (${data.items.length} 件表示中)`;
+            if (data.total === 0) {
+                countSpan.textContent = '0 件';
+                empty.style.display = 'block';
+                pagContainer.style.display = 'none';
+                return;
+            }
+
+            const startNum = currentOffset + 1;
+            const endNum = Math.min(currentOffset + data.items.length, data.total);
+            countSpan.textContent = `全 ${data.total} 件中 ${startNum}〜${endNum} 件を表示`;
 
             if (data.items.length === 0) {
                 empty.style.display = 'block';
-                document.getElementById('pagination').innerHTML = '';
+                pagContainer.style.display = 'none';
                 return;
             }
 
@@ -392,34 +483,96 @@
     }
 
     function renderPagination(total, limit, offset) {
-        const pag = document.getElementById('pagination');
-        pag.innerHTML = '';
+        const container = document.getElementById('paginationContainer');
+        const infoEl = document.getElementById('paginationInfo');
+        const controlsEl = document.getElementById('paginationControls');
+
+        controlsEl.innerHTML = '';
         const totalPages = Math.ceil(total / limit);
-        if (totalPages <= 1) return;
+
+        if (totalPages <= 1) {
+            container.style.display = 'none';
+            return;
+        }
 
         const currentPage = Math.floor(offset / limit) + 1;
+        infoEl.innerHTML = `ページ <strong>${currentPage}</strong> / ${totalPages} (全 ${total} 件)`;
 
-        if (currentPage > 1) {
-            const prevBtn = document.createElement('button');
-            prevBtn.className = 'btn btn-secondary btn-sm';
-            prevBtn.textContent = '前へ';
-            prevBtn.onclick = () => loadImages((currentPage - 2) * limit);
-            pag.appendChild(prevBtn);
+        // 「« 最初」ボタン
+        const firstBtn = document.createElement('button');
+        firstBtn.className = 'page-btn';
+        firstBtn.innerHTML = '«';
+        firstBtn.title = '最初のページ';
+        firstBtn.disabled = (currentPage === 1);
+        firstBtn.onclick = () => { goToPage(1); };
+        controlsEl.appendChild(firstBtn);
+
+        // 「‹ 前へ」ボタン
+        const prevBtn = document.createElement('button');
+        prevBtn.className = 'page-btn';
+        prevBtn.innerHTML = '‹ 前へ';
+        prevBtn.disabled = (currentPage === 1);
+        prevBtn.onclick = () => { goToPage(currentPage - 1); };
+        controlsEl.appendChild(prevBtn);
+
+        // ページ番号ボタンの生成
+        const pages = getPaginationPages(currentPage, totalPages);
+        pages.forEach(p => {
+            if (p === '...') {
+                const dots = document.createElement('span');
+                dots.className = 'page-ellipsis';
+                dots.textContent = '…';
+                controlsEl.appendChild(dots);
+            } else {
+                const btn = document.createElement('button');
+                btn.className = `page-btn ${p === currentPage ? 'active' : ''}`;
+                btn.textContent = p;
+                if (p === currentPage) {
+                    btn.disabled = true;
+                } else {
+                    btn.onclick = () => { goToPage(p); };
+                }
+                controlsEl.appendChild(btn);
+            }
+        });
+
+        // 「次へ ›」ボタン
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'page-btn';
+        nextBtn.innerHTML = '次へ ›';
+        nextBtn.disabled = (currentPage === totalPages);
+        nextBtn.onclick = () => { goToPage(currentPage + 1); };
+        controlsEl.appendChild(nextBtn);
+
+        // 「最後 »」ボタン
+        const lastBtn = document.createElement('button');
+        lastBtn.className = 'page-btn';
+        lastBtn.innerHTML = '»';
+        lastBtn.title = '最後のページ';
+        lastBtn.disabled = (currentPage === totalPages);
+        lastBtn.onclick = () => { goToPage(totalPages); };
+        controlsEl.appendChild(lastBtn);
+
+        container.style.display = 'flex';
+    }
+
+    function getPaginationPages(currentPage, totalPages) {
+        if (totalPages <= 7) {
+            return Array.from({ length: totalPages }, (_, i) => i + 1);
         }
-
-        const info = document.createElement('span');
-        info.style.alignSelf = 'center';
-        info.style.fontSize = '13px';
-        info.textContent = `ページ ${currentPage} / ${totalPages}`;
-        pag.appendChild(info);
-
-        if (currentPage < totalPages) {
-            const nextBtn = document.createElement('button');
-            nextBtn.className = 'btn btn-secondary btn-sm';
-            nextBtn.textContent = '次へ';
-            nextBtn.onclick = () => loadImages(currentPage * limit);
-            pag.appendChild(nextBtn);
+        if (currentPage <= 4) {
+            return [1, 2, 3, 4, 5, '...', totalPages];
         }
+        if (currentPage >= totalPages - 3) {
+            return [1, '...', totalPages - 4, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+        }
+        return [1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages];
+    }
+
+    function goToPage(page) {
+        const newOffset = (page - 1) * limit;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        loadImages(newOffset);
     }
 
     async function deleteImage(id) {
@@ -481,6 +634,11 @@
         document.getElementById('searchInput').value = '';
         currentKeyword = '';
         document.getElementById('clearBtn').style.display = 'none';
+        loadImages(0);
+    });
+
+    document.getElementById('perPageSelect').addEventListener('change', (e) => {
+        limit = parseInt(e.target.value, 10) || 20;
         loadImages(0);
     });
 

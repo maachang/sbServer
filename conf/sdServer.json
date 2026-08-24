@@ -41,7 +41,17 @@
         "dtype": "q4",
         "task": "text-generation"
       }
-    ]
+    ],
+    "external": {
+      "endpoint": "http://192.168.0.234:8080/v1",
+      "model": "default",
+      "apiKey": ""
+    },
+    "openai": {
+      "apiKey": "",
+      "model": "gpt-4o-mini"
+    },
+    "provider": "external"
   },
   "options": {
     "resolutions": [

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LLMモデル設定 - sdServer</title>
+    <title>LLM アシスト・翻訳設定 - sdServer</title>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -13,6 +13,7 @@
             margin: 0;
             padding: 0;
         }
+
         header {
             background: #ffffff;
             border-bottom: 1px solid #e1e4e8;
@@ -25,7 +26,7 @@
             z-index: 100;
         }
         .header-title {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
             color: #1f2937;
             display: flex;
@@ -37,6 +38,7 @@
             align-items: center;
             gap: 12px;
         }
+
         .btn {
             display: inline-flex;
             align-items: center;
@@ -47,281 +49,122 @@
             font-weight: 500;
             cursor: pointer;
             text-decoration: none;
-            transition: background 0.15s ease, border-color 0.15s ease;
+            transition: all 0.15s ease;
             border: 1px solid transparent;
+            white-space: nowrap;
         }
-        .btn-primary {
-            background: #2563eb;
-            color: #ffffff;
-        }
-        .btn-primary:hover:not(:disabled) {
-            background: #1d4ed8;
-        }
-        .btn-secondary {
-            background: #ffffff;
-            color: #4b5563;
-            border-color: #d1d5db;
-        }
-        .btn-secondary:hover:not(:disabled) {
-            background: #f9fafb;
-            border-color: #9ca3af;
-        }
-        .btn-danger {
-            background: #fee2e2;
-            color: #dc2626;
-            border-color: #fecaca;
-        }
-        .btn-danger:hover:not(:disabled) {
-            background: #fecaca;
-        }
-        .btn-warning {
-            background: #fffbeb;
-            color: #b45309;
-            border-color: #fde68a;
-        }
-        .btn-warning:hover:not(:disabled) {
-            background: #fef3c7;
-            border-color: #fcd34d;
-        }
-        .btn-outline-danger {
-            background: #ffffff;
-            color: #dc2626;
-            border-color: #fca5a5;
-        }
-        .btn-outline-danger:hover:not(:disabled) {
-            background: #fef2f2;
-            border-color: #f87171;
-        }
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 13px;
-        }
-        .btn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
+        .btn-primary { background: #2563eb; color: #ffffff; }
+        .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
+        .btn-secondary { background: #ffffff; color: #374151; border-color: #d1d5db; }
+        .btn-secondary:hover:not(:disabled) { background: #f9fafb; border-color: #9ca3af; }
+        .btn-success { background: #059669; color: #ffffff; }
+        .btn-success:hover:not(:disabled) { background: #047857; }
+        .btn-danger { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+        .btn-danger:hover:not(:disabled) { background: #fecaca; }
+        .btn-warning { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+        .btn-warning:hover:not(:disabled) { background: #fef3c7; border-color: #fcd34d; }
+        .btn-outline-danger { background: #ffffff; color: #dc2626; border-color: #fca5a5; }
+        .btn-outline-danger:hover:not(:disabled) { background: #fef2f2; border-color: #f87171; }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 24px 16px;
-        }
+        .container { max-width: 1000px; margin: 0 auto; padding: 24px 16px; }
 
-        .card {
+        /* プロバイダー状態バナー */
+        .provider-banner {
             background: #ffffff;
             border-radius: 8px;
-            border: 1px solid #e5e7eb;
-            padding: 24px;
-            margin-bottom: 24px;
+            border: 1px solid #bfdbfe;
+            background: linear-gradient(to right, #eff6ff, #ffffff);
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
             box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
-
-        .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-        }
-        .card-title {
-            font-size: 16px;
-            font-weight: bold;
-            color: #1f2937;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .model-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .model-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 16px;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            background: #fafafa;
-            transition: border-color 0.15s ease, background 0.15s ease;
-        }
-        .model-item.active {
-            border-color: #93c5fd;
-            background: #eff6ff;
-        }
-        .model-info {
-            flex: 1;
-            margin-right: 16px;
-        }
-        .model-name {
-            font-size: 15px;
-            font-weight: 600;
-            color: #1f2937;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .model-id {
+        .provider-banner-info { display: flex; align-items: center; gap: 12px; }
+        .provider-status-badge {
             font-size: 12px;
-            color: #6b7280;
-            font-family: monospace;
-            margin-top: 2px;
-        }
-        .model-desc {
-            font-size: 13px;
-            color: #4b5563;
-            margin-top: 4px;
-        }
-        .model-badges {
-            display: flex;
-            gap: 6px;
-            margin-top: 6px;
-            flex-wrap: wrap;
-        }
-        .badge {
-            font-size: 11px;
-            font-weight: 500;
-            padding: 2px 8px;
-            border-radius: 4px;
-            background: #e5e7eb;
-            color: #4b5563;
-        }
-        .badge-active {
-            background: #dbeafe;
-            color: #1d4ed8;
-        }
-        .badge-resident {
-            background: #dcfce7;
-            color: #15803d;
-            font-weight: 600;
-        }
-        .badge-cached {
-            background: #f3e8ff;
-            color: #6b21a8;
-        }
-        .badge-orphan {
-            background: #ffedd5;
-            color: #c2410c;
-        }
-
-        .model-actions {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex-shrink: 0;
-            flex-wrap: wrap;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-        label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            color: #374151;
-            margin-bottom: 6px;
-        }
-        input[type="text"], select, textarea {
-            width: 100%;
-            padding: 9px 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 14px;
-            outline: none;
-            font-family: inherit;
-        }
-        input:focus, select:focus, textarea:focus {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
-        }
-
-        .alert-box {
-            padding: 12px 16px;
-            border-radius: 6px;
-            font-size: 13px;
-            margin-bottom: 16px;
-            display: none;
-        }
-        .alert-success {
-            background: #f0fdf4;
-            border: 1px solid #bbf7d0;
-            color: #166534;
-        }
-        .alert-error {
-            background: #fee2e2;
-            border: 1px solid #fecaca;
-            color: #b91c1c;
-        }
-
-        /* オーバーレイ & プログレスバー */
-        #loadingOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(15, 23, 42, 0.7);
-            backdrop-filter: blur(3px);
-            z-index: 9999;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            color: #ffffff;
-            user-select: none;
-        }
-        .overlay-card {
-            background: #ffffff;
-            color: #1f2937;
-            padding: 28px 36px;
-            border-radius: 12px;
-            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            max-width: 480px;
-            width: 90%;
-            text-align: center;
-        }
-        .spinner {
-            width: 44px;
-            height: 44px;
-            border: 4px solid rgba(37,99,235,0.2);
-            border-left-color: #2563eb;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            margin-bottom: 16px;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .progress-bar-container {
-            width: 100%;
-            height: 10px;
-            background: #e5e7eb;
+            font-weight: 700;
+            padding: 4px 10px;
             border-radius: 999px;
-            overflow: hidden;
-            margin: 14px 0 8px 0;
-        }
-        .progress-bar-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #3b82f6, #2563eb);
-            width: 0%;
-            transition: width 0.2s ease;
-        }
-        .progress-meta {
+            background: #10b981;
+            color: #ffffff;
             display: flex;
-            justify-content: space-between;
-            width: 100%;
-            font-size: 12px;
-            color: #6b7280;
+            align-items: center;
+            gap: 4px;
         }
+
+        /* タブナビゲーション */
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 2px solid #e5e7eb; padding-bottom: 0; }
+        .tab-btn {
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #4b5563;
+            background: transparent;
+            border: none;
+            border-bottom: 3px solid transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: -2px;
+            transition: all 0.15s ease;
+        }
+        .tab-btn:hover { color: #1f2937; background: #e5e7eb; border-radius: 6px 6px 0 0; }
+        .tab-btn.active {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+            background: #ffffff;
+            border-radius: 6px 6px 0 0;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.02);
+        }
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        .card { background: #ffffff; border-radius: 8px; border: 1px solid #e5e7eb; padding: 24px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+        .card-title { font-size: 16px; font-weight: bold; color: #1f2937; margin: 0; display: flex; align-items: center; gap: 8px; }
+
+        .model-list { display: flex; flex-direction: column; gap: 12px; }
+        .model-item { display: flex; align-items: center; justify-content: space-between; padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa; }
+        .model-item.active { border-color: #93c5fd; background: #eff6ff; }
+        .model-info { flex: 1; margin-right: 16px; }
+        .model-name { font-size: 15px; font-weight: 600; color: #1f2937; }
+        .model-id { font-size: 12px; color: #6b7280; font-family: monospace; margin-top: 2px; }
+        .model-desc { font-size: 13px; color: #4b5563; margin-top: 4px; }
+        .model-badges { display: flex; gap: 6px; margin-top: 6px; flex-wrap: wrap; }
+        .badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 4px; background: #e5e7eb; color: #4b5563; }
+        .badge-active { background: #dbeafe; color: #1d4ed8; }
+        .badge-resident { background: #dcfce7; color: #15803d; font-weight: 600; }
+        .badge-cached { background: #f3e8ff; color: #6b21a8; }
+        .badge-orphan { background: #ffedd5; color: #c2410c; }
+        .model-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; flex-wrap: wrap; }
+
+        .form-group { margin-bottom: 16px; }
+        label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 6px; }
+        input[type="text"], input[type="password"], select, textarea { width: 100%; padding: 9px 12px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; outline: none; font-family: inherit; }
+        input:focus, select:focus, textarea:focus { border-color: #2563eb; box-shadow: 0 0 0 2px rgba(37,99,235,0.2); }
+        .alert-box { padding: 12px 16px; border-radius: 6px; font-size: 13px; margin-bottom: 16px; display: none; }
+        .alert-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+        .alert-error { background: #fee2e2; border: 1px solid #fecaca; color: #b91c1c; }
+        .test-result-box { margin-top: 16px; padding: 12px 16px; border-radius: 6px; font-size: 13px; display: none; line-height: 1.5; }
+
+        .input-with-btn {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* オーバーレイ */
+        #loadingOverlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(3px); z-index: 9999; display: none; align-items: center; justify-content: center; flex-direction: column; color: #ffffff; user-select: none; }
+        .overlay-card { background: #ffffff; color: #1f2937; padding: 28px 36px; border-radius: 12px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25); text-align: center; max-width: 480px; width: 90%; }
+        .spinner { width: 44px; height: 44px; border: 4px solid #e5e7eb; border-left-color: #2563eb; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .progress-bar-container { width: 100%; height: 10px; background: #e5e7eb; border-radius: 999px; overflow: hidden; margin: 14px 0 8px 0; }
+        .progress-bar-fill { height: 100%; background: #2563eb; width: 0%; transition: width 0.2s ease; }
+        .progress-meta { display: flex; justify-content: space-between; width: 100%; font-size: 12px; color: #6b7280; }
     </style>
 </head>
 <body>
@@ -330,33 +173,25 @@
     <div class="overlay-card">
         <div class="spinner"></div>
         <h4 id="overlayTitle" style="margin: 0 0 6px 0; font-size: 17px; font-weight: 600;">モデルをロード中...</h4>
-        <div id="overlayFile" style="font-size: 12px; color: #6b7280; font-family: monospace; word-break: break-all; margin-bottom: 4px;"></div>
-        
-        <div class="progress-bar-container">
-            <div id="progressBarFill" class="progress-bar-fill"></div>
-        </div>
-        <div class="progress-meta">
-            <span id="progressPercent">0%</span>
-            <span id="progressMessage">準備中...</span>
-        </div>
+        <div id="overlayFile" style="font-size: 12px; color: #6b7280; font-family: monospace; margin-bottom: 4px; word-break: break-all;"></div>
+        <div class="progress-bar-container"><div id="progressBarFill" class="progress-bar-fill"></div></div>
+        <div class="progress-meta"><span id="progressPercent">0%</span><span id="progressMessage">準備中...</span></div>
     </div>
 </div>
 
-<div id="deleteModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(2px); z-index: 9998; display: none; align-items: center; justify-content: center; padding: 20px;">
-    <div style="background: #ffffff; border-radius: 12px; padding: 24px; max-width: 460px; width: 100%; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2); text-align: center;">
-        <h3 id="deleteModalTitle" style="margin: 0 0 8px 0; font-size: 18px; color: #1f2937;">モデル項目の削除</h3>
-        <p id="deleteModalDesc" style="font-size: 14px; color: #4b5563; margin: 0 0 16px 0; line-height: 1.5;"></p>
-        
+<div id="deleteModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); z-index: 9998; display: none; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: #ffffff; border-radius: 12px; padding: 24px; max-width: 460px; width: 100%; text-align: center;">
+        <h3 id="deleteModalTitle" style="margin: 0 0 8px 0; font-size: 18px;">削除確認</h3>
+        <p id="deleteModalDesc" style="font-size: 14px; color: #4b5563; margin-bottom: 16px; line-height: 1.5;"></p>
         <div id="deleteCacheOptionRow" style="margin-bottom: 20px; text-align: left; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 10px 12px; display: none;">
             <label style="display: flex; align-items: center; cursor: pointer; font-size: 13px; font-weight: 500; color: #991b1b; margin: 0;">
-                <input type="checkbox" id="deleteWithCacheCheck" checked style="margin-right: 8px; width: 16px; height: 16px; accent-color: #dc2626; cursor: pointer;">
-                <span>💾 <strong id="deleteCacheSizeLabel">ダウンロード済みキャッシュ（実体ファイル）も削除してディスク容量を解放する</strong></span>
+                <input type="checkbox" id="deleteWithCacheCheck" checked style="margin-right: 8px; width: 16px; height: 16px; accent-color: #dc2626;">
+                <span>💾 <strong id="deleteCacheSizeLabel">ダウンロード済みキャッシュも削除して容量解放</strong></span>
             </label>
         </div>
-
         <div style="display: flex; gap: 12px;">
-            <button type="button" id="confirmDeleteBtn" class="btn btn-danger" style="flex: 1;">🗑️ 削除を実行</button>
-            <button type="button" id="cancelDeleteBtn" class="btn btn-secondary" style="flex: 1;">キャンセル</button>
+            <button id="confirmDeleteBtn" class="btn btn-danger" style="flex:1;">🗑️ 削除を実行</button>
+            <button id="cancelDeleteBtn" class="btn btn-secondary" style="flex:1;">キャンセル</button>
         </div>
     </div>
 </div>
@@ -364,10 +199,10 @@
 <header>
     <div class="header-title">
         <a href="/menu.html" style="text-decoration: none; color: inherit;">🎨 sdServer</a>
-        <span style="font-size: 13px; font-weight: normal; color: #6b7280; margin-left: 8px;">🤖 LLM アシスト・翻訳モデル管理</span>
+        <span style="font-size: 13px; font-weight: normal; color: #6b7280; margin-left: 8px;">🤖 LLM アシスト・翻訳設定</span>
     </div>
     <div class="header-actions">
-        <a href="/generate.html?mode=new" class="btn btn-primary">✨ 画像生成へ</a>
+        <a href="/generate.html?mode=new" class="btn btn-primary">➕ 新規作成</a>
         <a href="/menu.html" class="btn btn-secondary">一覧へ戻る</a>
     </div>
 </header>
@@ -375,82 +210,207 @@
 <div class="container">
     <div id="statusAlert" class="alert-box"></div>
 
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">🤖 LLM モデル一覧（翻訳・AIプロンプトアシスト）</h3>
-            <button id="refreshBtn" class="btn btn-secondary btn-sm">🔄 更新</button>
+    <!-- 現在有効なLLM設定バナー -->
+    <div class="provider-banner">
+        <div class="provider-banner-info">
+            <div class="provider-status-badge">● 有効中</div>
+            <div>
+                <strong id="activeProviderTitle" style="font-size: 15px; color: #1e3a8a;">ローカルLLM (Transformers.js)</strong>
+                <div id="activeProviderDetail" style="font-size: 12px; color: #4b5563; margin-top: 2px;">Qwen 2.5 1.5B Instruct</div>
+            </div>
         </div>
-
-        <p style="font-size: 13px; color: #4b5563; margin-top: 0; margin-bottom: 10px; line-height: 1.6;">
-            日本語プロンプトの<strong>英語直訳</strong>に加え、Stable Diffusion向けに<strong>アイテム単体・構図タグの最適化や推奨ネガティブ生成（AIアシスト）</strong>を行うローカルLLMを選択・ロードします。
-        </p>
-
-        <div id="modelList" class="model-list">
-            <!-- JSで動的レンダリング -->
-        </div>
-    </div>
-
-    <div id="orphanCacheCard" class="card" style="display: none; border-color: #fed7aa; background: #fffaf5;">
-        <div class="card-header">
-            <h3 class="card-title" style="color: #9a3412;">📦 未登録のダウンロード済みキャッシュ (ディスク容量解放)</h3>
-        </div>
-        <p style="font-size: 13px; color: #7c2d12; margin-top: 0; margin-bottom: 14px; line-height: 1.5;">
-            設定一覧には登録されていませんが、ディスク上にダウンロード済みファイル（キャッシュ）が残っているモデルです。<br>
-            不要な場合はキャッシュを削除してディスク容量を解放するか、一覧に再登録できます。
-        </p>
-        <div id="orphanCacheList" class="model-list">
-            <!-- JS動的レンダリング -->
+        <div>
+            <button id="globalRefreshBtn" class="btn btn-secondary btn-sm">🔄 更新</button>
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-header">
-            <h3 class="card-title">➕ 新規 HuggingFace ONNX モデルの追加</h3>
-        </div>
+    <!-- タブ切り替え -->
+    <div class="tabs">
+        <button type="button" class="tab-btn active" data-tab="tab-local">🤖 ローカルLLM (ONNX)</button>
+        <button type="button" class="tab-btn" data-tab="tab-external">🌐 外部LLMサーバー (llama.cpp / Ollama / ルーター)</button>
+        <button type="button" class="tab-btn" data-tab="tab-openai">⚡ OpenAI (ChatGPT API)</button>
+    </div>
 
-        <form id="addModelForm">
-            <div class="form-group">
-                <label for="modelId">HuggingFace Model ID <span style="color: red;">*</span></label>
-                <input type="text" id="modelId" placeholder="例: onnx-community/Qwen2.5-1.5B-Instruct" required />
-                <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">
-                    ※ Hugging Face 上の Transformers.js 互換 ONNX リポジトリを指定してください。
+    <!-- ==================== タブ 1: ローカルLLM ==================== -->
+    <div id="tab-local" class="tab-pane active">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">🤖 ローカル ONNX モデル一覧</h3>
+                <div id="localActivateHeader" style="display: none;">
+                    <button id="activateLocalBtn" class="btn btn-success btn-sm">⚡ ローカルLLMを有効化</button>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label for="modelName">モデル表示名</label>
-                <input type="text" id="modelName" placeholder="例: Qwen 2.5 1.5B Instruct" />
+            <p style="font-size: 13px; color: #4b5563; margin-top: 0; margin-bottom: 10px; line-height: 1.6;">
+                日本語プロンプトの<strong>英語直訳</strong>に加え、Stable Diffusion向けに<strong>アイテム単体・構図タグの最適化や推奨ネガティブ生成（AIアシスト）</strong>を行うローカルLLM（Transformers.js / ONNX）を選択・常駐化します。
+            </p>
+
+            <div id="modelList" class="model-list"></div>
+        </div>
+
+        <div id="orphanCacheCard" class="card" style="display: none; border-color: #fed7aa; background: #fffaf5;">
+            <div class="card-header">
+                <h3 class="card-title" style="color: #9a3412;">📦 未登録のダウンロード済みキャッシュ (ディスク容量解放)</h3>
+            </div>
+            <p style="font-size: 13px; color: #7c2d12; margin-top: 0; margin-bottom: 14px; line-height: 1.5;">
+                設定一覧には登録されていませんが、ディスク上にダウンロード済みファイル（キャッシュ）が残っているモデルです。<br>
+                不要な場合はキャッシュを削除してディスク容量を解放するか、一覧に再登録できます。
+            </p>
+            <div id="orphanCacheList" class="model-list"></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">➕ 新規 HuggingFace ONNX モデルの追加</h3>
             </div>
 
-            <div class="form-group">
-                <label for="modelDescription">説明・メモ</label>
-                <input type="text" id="modelDescription" placeholder="例: 高い翻訳力とプロンプト最適化能力を持つモデル" />
-            </div>
-
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <form id="addModelForm">
                 <div class="form-group">
-                    <label for="modelDtype">量子化精度 (dtype)</label>
-                    <select id="modelDtype">
-                        <option value="q4" selected>q4 (推奨・超軽量量子化)</option>
-                        <option value="q8">q8 (高精度量子化)</option>
-                        <option value="fp16">fp16 (半精度浮動小数点)</option>
-                        <option value="fp32">fp32 (全精度)</option>
-                    </select>
+                    <label for="modelId">HuggingFace Model ID <span style="color: red;">*</span></label>
+                    <input type="text" id="modelId" placeholder="例: onnx-community/Qwen2.5-1.5B-Instruct" required />
+                    <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">
+                        ※ Hugging Face 上の Transformers.js 互換 ONNX リポジトリを指定してください。
+                    </div>
                 </div>
+
                 <div class="form-group">
-                    <label for="modelTask">タスク</label>
-                    <select id="modelTask">
-                        <option value="text-generation" selected>text-generation (テキスト生成)</option>
-                        <option value="translation">translation (翻訳パイプライン)</option>
-                    </select>
+                    <label for="modelName">モデル表示名</label>
+                    <input type="text" id="modelName" placeholder="例: Qwen 2.5 1.5B Instruct" />
                 </div>
+
+                <div class="form-group">
+                    <label for="modelDescription">説明・メモ</label>
+                    <input type="text" id="modelDescription" placeholder="例: 高い翻訳力とプロンプト最適化能力を持つモデル" />
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label for="modelDtype">量子化精度 (dtype)</label>
+                        <select id="modelDtype">
+                            <option value="q4" selected>q4 (推奨・超軽量量子化)</option>
+                            <option value="q8">q8 (高精度量子化)</option>
+                            <option value="fp16">fp16 (半精度浮動小数点)</option>
+                            <option value="fp32">fp32 (全精度)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="modelTask">タスク</label>
+                        <select id="modelTask">
+                            <option value="text-generation" selected>text-generation (テキスト生成)</option>
+                            <option value="translation">translation (翻訳パイプライン)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-top: 16px;">
+                    <button type="submit" id="addSubmitBtn" class="btn btn-primary">➕ モデルを一覧に登録</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== タブ 2: 外部LLMサーバー ==================== -->
+    <div id="tab-external" class="tab-pane">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">🌐 外部 LLM サーバー / ルーター接続設定 (OpenAI 互換 API)</h3>
             </div>
 
-            <div style="margin-top: 16px;">
-                <button type="submit" id="addSubmitBtn" class="btn btn-primary">➕ モデルを一覧に登録</button>
+            <p style="font-size: 13px; color: #4b5563; margin-top: 0; margin-bottom: 16px; line-height: 1.6;">
+                <strong>llama.cpp server</strong>、<strong>Ollama</strong>、<strong>LM Studio</strong>、<strong>LiteLLM / OpenWebUI ルーター</strong>、<strong>vLLM</strong> などの OpenAI 互換エンドポイントに接続します。<br>
+                ルーターモードや複数モデルを配信しているサーバーの場合は、<strong>「🔄 モデル一覧を取得」</strong>ボタンでサーバーから利用可能なモデル一覧を取得して選択できます。
+            </p>
+
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 12px 16px; margin-bottom: 20px; font-size: 12px; color: #475569; line-height: 1.6;">
+                💡 <strong>主なエンドポイント例:</strong><br>
+                ・<strong>llama.cpp server:</strong> <code>http://localhost:8080/v1</code><br>
+                ・<strong>Ollama:</strong> <code>http://localhost:11434/v1</code><br>
+                ・<strong>LM Studio:</strong> <code>http://localhost:1234/v1</code><br>
+                ・<strong>LiteLLM / 各種ルーター:</strong> <code>http://localhost:4000/v1</code>
             </div>
-        </form>
+
+            <form id="externalForm">
+                <div class="form-group">
+                    <label for="extEndpoint">エンドポイント URL <span style="color: red;">*</span></label>
+                    <input type="text" id="extEndpoint" placeholder="http://localhost:8080/v1" required />
+                </div>
+
+                <div class="form-group">
+                    <label for="extModel">モデル選択 (Model Name) <span style="color: red;">*</span></label>
+                    <div class="input-with-btn">
+                        <select id="extModelSelect" style="display: none; flex: 1;">
+                            <option value="">-- 取得済みモデル一覧から選択 --</option>
+                        </select>
+                        <input type="text" id="extModel" placeholder="例: default または qwen2.5:7b" style="flex: 1;" />
+                        <button type="button" id="extFetchModelsBtn" class="btn btn-secondary">🔄 モデル一覧を取得</button>
+                    </div>
+                    <div id="extFetchNote" style="font-size: 12px; color: #6b7280; margin-top: 4px;">
+                        ※ llama.cpp 単体などモデル一覧取得に対応していないサーバーの場合は手動で <code>default</code> 等を入力してください。
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="extApiKey">API キー / トークン (通常は空欄でOK / 認証が必要なルーターのみ)</label>
+                    <input type="password" id="extApiKey" placeholder="不要な場合は空欄のままで構いません" />
+                </div>
+
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px;">
+                    <button type="button" id="extTestBtn" class="btn btn-secondary">🔍 接続テスト</button>
+                    <button type="button" id="extSaveAndEnableBtn" class="btn btn-success">💾 設定保存 & 外部サーバーを有効化</button>
+                    <button type="button" id="extSaveOnlyBtn" class="btn btn-secondary">💾 設定のみ保存</button>
+                </div>
+
+                <div id="extTestResult" class="test-result-box"></div>
+            </form>
+        </div>
     </div>
+
+    <!-- ==================== タブ 3: OpenAI API ==================== -->
+    <div id="tab-openai" class="tab-pane">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">⚡ OpenAI (ChatGPT API) 接続設定</h3>
+            </div>
+
+            <p style="font-size: 13px; color: #4b5563; margin-top: 0; margin-bottom: 16px; line-height: 1.6;">
+                OpenAI の公式 API を使用して、極めて高精度なプロンプト英訳・構図タグ最適化・ネガティブ補完を行います。<br>
+                APIキーを入力後に<strong>「🔄 モデル一覧を取得」</strong>を押すと、アカウントで利用可能な全モデル一覧を取得して選択できます。
+            </p>
+
+            <form id="openaiForm">
+                <div class="form-group">
+                    <label for="oaiApiKey">OpenAI API Key <span style="color: red;">*</span></label>
+                    <input type="password" id="oaiApiKey" placeholder="sk-proj-..." required />
+                    <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">
+                        ※ APIキーは <code>conf/sdServer.json</code> に安全に保存され、サーバー間通信でのみ使用されます。
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="oaiModelSelect">使用モデル <span style="color: red;">*</span></label>
+                    <div class="input-with-btn">
+                        <select id="oaiModelSelect" style="flex: 1;">
+                            <option value="gpt-4o-mini" selected>gpt-4o-mini (推奨・超高速・安価)</option>
+                            <option value="gpt-4o">gpt-4o (最高峰の表現力・高品質)</option>
+                            <option value="gpt-3.5-turbo">gpt-3.5-turbo (旧世代標準)</option>
+                            <option value="custom">その他 (カスタムモデル指定)</option>
+                        </select>
+                        <button type="button" id="oaiFetchModelsBtn" class="btn btn-secondary">🔄 モデル一覧を取得</button>
+                    </div>
+                    <input type="text" id="oaiCustomModel" placeholder="例: gpt-4o-2024-08-06" style="display: none; margin-top: 8px;" />
+                </div>
+
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px;">
+                    <button type="button" id="oaiTestBtn" class="btn btn-secondary">🔍 接続テスト</button>
+                    <button type="button" id="oaiSaveAndEnableBtn" class="btn btn-success">💾 設定保存 & OpenAI を有効化</button>
+                    <button type="button" id="oaiSaveOnlyBtn" class="btn btn-secondary">💾 設定のみ保存</button>
+                </div>
+
+                <div id="oaiTestResult" class="test-result-box"></div>
+            </form>
+        </div>
+    </div>
+
 </div>
 
 <script>
@@ -461,6 +421,9 @@
     const progressPercent = document.getElementById('progressPercent');
     const progressMessage = document.getElementById('progressMessage');
     const statusAlert = document.getElementById('statusAlert');
+
+    const activeProviderTitle = document.getElementById('activeProviderTitle');
+    const activeProviderDetail = document.getElementById('activeProviderDetail');
 
     const deleteModal = document.getElementById('deleteModal');
     const deleteModalTitle = document.getElementById('deleteModalTitle');
@@ -473,11 +436,23 @@
 
     let pendingDeleteAction = null;
     let progressPollingTimer = null;
+    let currentProvider = 'local';
+
+    // タブ切り替え
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(btn.getAttribute('data-tab')).classList.add('active');
+        });
+    });
 
     function showAlert(msg, isError = false) {
         statusAlert.className = `alert-box ${isError ? 'alert-error' : 'alert-success'}`;
         statusAlert.textContent = msg;
         statusAlert.style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         setTimeout(() => { statusAlert.style.display = 'none'; }, 5000);
     }
 
@@ -555,6 +530,7 @@
         const listEl = document.getElementById('modelList');
         const orphanCard = document.getElementById('orphanCacheCard');
         const orphanList = document.getElementById('orphanCacheList');
+        const localActivateHeader = document.getElementById('localActivateHeader');
 
         listEl.innerHTML = '<div style="text-align: center; color: #9ca3af; padding: 20px;">読み込み中...</div>';
 
@@ -563,9 +539,55 @@
             const json = await res.json();
             if (!json.success || !json.data) return;
 
-            const { models, orphanCaches } = json.data;
-            listEl.innerHTML = '';
+            const { provider, activeModel, models, orphanCaches, external, openai } = json.data;
+            currentProvider = provider || 'local';
 
+            if (currentProvider === 'external') {
+                activeProviderTitle.textContent = '🌐 外部LLMサーバー (OpenAI互換)';
+                activeProviderDetail.textContent = `${external?.endpoint || 'http://localhost:8080/v1'} (モデル: ${external?.model || 'default'})`;
+                localActivateHeader.style.display = 'block';
+            } else if (currentProvider === 'openai') {
+                activeProviderTitle.textContent = '⚡ OpenAI API (ChatGPT)';
+                activeProviderDetail.textContent = `モデル: ${openai?.model || 'gpt-4o-mini'} (${openai?.apiKey ? 'APIキー設定済' : 'APIキー未設定'})`;
+                localActivateHeader.style.display = 'block';
+            } else {
+                const activeModelObj = models.find(m => m.id === activeModel);
+                activeProviderTitle.textContent = '🤖 ローカルLLM (Transformers.js / ONNX)';
+                activeProviderDetail.textContent = activeModelObj ? activeModelObj.name : activeModel;
+                localActivateHeader.style.display = 'none';
+            }
+
+            if (external) {
+                document.getElementById('extEndpoint').value = external.endpoint || 'http://localhost:8080/v1';
+                document.getElementById('extModel').value = external.model || 'default';
+                document.getElementById('extApiKey').value = external.apiKey || '';
+            }
+
+            if (openai) {
+                document.getElementById('oaiApiKey').value = openai.apiKey || '';
+                const mSelect = document.getElementById('oaiModelSelect');
+                const customInput = document.getElementById('oaiCustomModel');
+                
+                // 既存の選択肢にあるか確認
+                let existsInSelect = false;
+                for (let i = 0; i < mSelect.options.length; i++) {
+                    if (mSelect.options[i].value === openai.model) {
+                        mSelect.selectedIndex = i;
+                        existsInSelect = true;
+                        break;
+                    }
+                }
+
+                if (existsInSelect) {
+                    customInput.style.display = 'none';
+                } else if (openai.model) {
+                    mSelect.value = 'custom';
+                    customInput.value = openai.model;
+                    customInput.style.display = 'block';
+                }
+            }
+
+            listEl.innerHTML = '';
             if (models.length === 0) {
                 listEl.innerHTML = '<div style="color: #9ca3af; padding: 10px;">登録されているモデルがありません。</div>';
             } else {
@@ -573,40 +595,31 @@
                     const item = document.createElement('div');
                     item.className = `model-item ${m.isActive ? 'active' : ''}`;
                     let badgesHtml = '';
-                    if (m.isLoaded) badgesHtml += `<span class="badge badge-resident">⚡ メモリ常駐中</span>`;
-                    else if (m.isConfigured) badgesHtml += `<span class="badge badge-active">✔ 設定選択中</span>`;
+                    if (m.isLoaded && currentProvider === 'local') {
+                        badgesHtml += '<span class="badge badge-resident">⚡ メモリ常駐中</span>';
+                    } else if (m.isConfigured && currentProvider === 'local') {
+                        badgesHtml += '<span class="badge badge-active">✔ 設定選択中</span>';
+                    }
 
                     if (m.isCached) badgesHtml += `<span class="badge badge-cached">💾 ダウンロード済 (${escapeHtml(m.cacheSize || '')})</span>`;
-                    else badgesHtml += `<span class="badge">☁️ 未ダウンロード</span>`;
+                    else badgesHtml += '<span class="badge">☁️ 未ダウンロード</span>';
 
                     if (m.dtype) badgesHtml += `<span class="badge">${m.dtype}</span>`;
 
                     let actionBtnHtml = '';
-                    if (m.isLoaded) {
-                        actionBtnHtml = `
-                            <button disabled class="btn btn-secondary btn-sm" style="font-weight: 600; color: #059669; cursor: default;">
-                                ✅ 選択・常駐中
-                            </button>
-                        `;
-                    } else if (m.isConfigured) {
-                        actionBtnHtml = `
-                            <button disabled class="btn btn-secondary btn-sm" style="font-weight: 600; color: #2563eb; cursor: default;">
-                                ✔ 選択中
-                            </button>
-                        `;
+                    if (currentProvider === 'local' && m.isLoaded) {
+                        actionBtnHtml = '<button disabled class="btn btn-secondary btn-sm" style="font-weight: 600; color: #059669; cursor: default;">✅ 選択・常駐中</button>';
+                    } else if (currentProvider === 'local' && m.isConfigured) {
+                        actionBtnHtml = '<button disabled class="btn btn-secondary btn-sm" style="font-weight: 600; color: #2563eb; cursor: default;">✔ 選択中</button>';
                     } else {
                         const btnLabel = m.isCached ? '🔄 このモデルを選択' : '⬇️ ダウンロードして選択';
-                        actionBtnHtml = `
-                            <button onclick="switchModel('${escapeHtml(m.id)}')" class="btn btn-primary btn-sm">
-                                ${btnLabel}
-                            </button>
-                        `;
+                        actionBtnHtml = `<button onclick="switchModel('${escapeHtml(m.id)}')" class="btn btn-primary btn-sm">${btnLabel}</button>`;
                     }
 
-                    let cacheDeleteBtnHtml = (m.isCached && !m.isLoaded && !m.isConfigured) ? 
-                        `<button onclick="deleteCacheOnly('${escapeHtml(m.id)}', '${escapeHtml(m.cacheSize || '')}')" class="btn btn-warning btn-sm" title="設定は残したまま、ダウンロード済みファイルのみ削除してディスク容量を解放します">💾 キャッシュ削除</button>` : '';
+                    let cacheDeleteBtnHtml = (m.isCached && !m.isLoaded && !(currentProvider === 'local' && m.isConfigured)) ? 
+                        `<button onclick="deleteCacheOnly('${escapeHtml(m.id)}', '${escapeHtml(m.cacheSize || '')}')" class="btn btn-warning btn-sm" title="キャッシュ削除">💾 キャッシュ削除</button>` : '';
 
-                    let itemDeleteBtnHtml = (models.length > 1 && !m.isLoaded && !m.isConfigured) ? 
+                    let itemDeleteBtnHtml = (models.length > 1 && !m.isLoaded && !(currentProvider === 'local' && m.isConfigured)) ? 
                         `<button onclick="deleteModelItem('${escapeHtml(m.id)}', ${m.isCached}, '${escapeHtml(m.cacheSize || '')}')" class="btn btn-outline-danger btn-sm" title="一覧から削除">🗑️ 項目削除</button>` : '';
 
                     item.innerHTML = `
@@ -651,13 +664,255 @@
     async function switchModel(modelId) {
         showLoading(`[${modelId}] をロード中...`);
         try {
-            const res = await fetch('/api/models?action=switch', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ modelId }) });
+            const res = await fetch('/api/models?action=switch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modelId }) });
             const json = await res.json();
             hideLoading();
-            if (json.success) { showAlert(`モデルを [${modelId}] に切り替えました！`); loadModels(); }
+            if (json.success) { showAlert(`ローカルLLMを [${modelId}] に切り替え、有効化しました！`); loadModels(); }
             else showAlert(`切り替え失敗: ${json.error}`, true);
         } catch (e) { hideLoading(); showAlert(`通信エラー: ${e.message}`, true); }
     }
+
+    document.getElementById('activateLocalBtn')?.addEventListener('click', async () => {
+        try {
+            const res = await fetch('/api/models?action=switchProvider', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'local' }) });
+            const json = await res.json();
+            if (json.success) { showAlert('ローカルLLM (Transformers.js) を有効化しました！'); loadModels(); }
+            else showAlert(`切り替え失敗: ${json.error}`, true);
+        } catch (e) { showAlert(`通信エラー: ${e.message}`, true); }
+    });
+
+    // 外部LLM: モデル一覧取得
+    document.getElementById('extFetchModelsBtn').addEventListener('click', async () => {
+        const endpoint = document.getElementById('extEndpoint').value.trim();
+        const apiKey = document.getElementById('extApiKey').value.trim();
+        const fetchBtn = document.getElementById('extFetchModelsBtn');
+        const selectEl = document.getElementById('extModelSelect');
+        const inputEl = document.getElementById('extModel');
+        const noteEl = document.getElementById('extFetchNote');
+
+        if (!endpoint) {
+            alert('エンドポイント URL を入力してください');
+            return;
+        }
+
+        const originalBtnText = fetchBtn.innerHTML;
+        fetchBtn.disabled = true;
+        fetchBtn.innerHTML = '⏳ 取得中...';
+
+        try {
+            const res = await fetch('/api/models?action=fetchModels', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ provider: 'external', endpoint, apiKey })
+            });
+            const json = await res.json();
+            if (json.success && json.data?.models?.length > 0) {
+                const models = json.data.models;
+                selectEl.innerHTML = '';
+                
+                models.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.textContent = m;
+                    selectEl.appendChild(opt);
+                });
+
+                const customOpt = document.createElement('option');
+                customOpt.value = '__custom__';
+                customOpt.textContent = '✏️ 手動で自由入力...';
+                selectEl.appendChild(customOpt);
+
+                // 現在の入力値があればそれを選択
+                const currentVal = inputEl.value.trim();
+                if (models.includes(currentVal)) {
+                    selectEl.value = currentVal;
+                    inputEl.style.display = 'none';
+                } else if (models.length > 0) {
+                    selectEl.value = models[0];
+                    inputEl.value = models[0];
+                    inputEl.style.display = 'none';
+                }
+
+                selectEl.style.display = 'block';
+                noteEl.innerHTML = `✅ <strong>${models.length} 件のモデルを取得しました。</strong> リストから選択できます。`;
+                noteEl.style.color = '#15803d';
+                showAlert(`外部サーバーから ${models.length} 件のモデルを取得しました`);
+            } else {
+                noteEl.innerHTML = `⚠️ <strong>モデル一覧を取得できませんでした:</strong> ${escapeHtml(json.error || '不明なエラー')}`;
+                noteEl.style.color = '#b91c1c';
+                showAlert(`モデル一覧取得失敗: ${json.error}`, true);
+            }
+        } catch (e) {
+            noteEl.innerHTML = `⚠️ <strong>通信エラー:</strong> ${escapeHtml(e.message)}`;
+            noteEl.style.color = '#b91c1c';
+            showAlert(`通信エラー: ${e.message}`, true);
+        } finally {
+            fetchBtn.disabled = false;
+            fetchBtn.innerHTML = originalBtnText;
+        }
+    });
+
+    document.getElementById('extModelSelect').addEventListener('change', (e) => {
+        const inputEl = document.getElementById('extModel');
+        if (e.target.value === '__custom__') {
+            inputEl.style.display = 'block';
+            inputEl.value = '';
+            inputEl.focus();
+        } else {
+            inputEl.style.display = 'none';
+            inputEl.value = e.target.value;
+        }
+    });
+
+    // 外部LLM: 接続テスト
+    document.getElementById('extTestBtn').addEventListener('click', async () => {
+        const endpoint = document.getElementById('extEndpoint').value.trim();
+        const model = document.getElementById('extModel').value.trim();
+        const apiKey = document.getElementById('extApiKey').value.trim();
+        const resultBox = document.getElementById('extTestResult');
+        if (!endpoint) { alert('エンドポイント URL を入力してください'); return; }
+        resultBox.style.background = '#f3f4f6'; resultBox.style.color = '#374151'; resultBox.style.border = '1px solid #d1d5db';
+        resultBox.innerHTML = '⏳ 外部サーバーに接続テスト中...'; resultBox.style.display = 'block';
+        try {
+            const res = await fetch('/api/models?action=testConnection', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'external', endpoint, model, apiKey }) });
+            const json = await res.json();
+            if (json.success) {
+                resultBox.style.background = '#f0fdf4'; resultBox.style.color = '#166534'; resultBox.style.border = '1px solid #bbf7d0';
+                resultBox.innerHTML = `✅ <strong>接続成功！</strong> サーバー応答: <code>${escapeHtml(json.data.reply)}</code>`;
+            } else {
+                resultBox.style.background = '#fee2e2'; resultBox.style.color = '#b91c1c'; resultBox.style.border = '1px solid #fecaca';
+                resultBox.innerHTML = `❌ <strong>接続失敗:</strong> ${escapeHtml(json.error)}`;
+            }
+        } catch (e) {
+            resultBox.style.background = '#fee2e2'; resultBox.style.color = '#b91c1c'; resultBox.style.border = '1px solid #fecaca';
+            resultBox.innerHTML = `❌ <strong>通信エラー:</strong> ${escapeHtml(e.message)}`;
+        }
+    });
+
+    async function saveExternalSettings(enable = false) {
+        const endpoint = document.getElementById('extEndpoint').value.trim();
+        const model = document.getElementById('extModel').value.trim() || 'default';
+        const apiKey = document.getElementById('extApiKey').value.trim();
+        if (!endpoint) { alert('エンドポイント URL を入力してください'); return; }
+        try {
+            const res = await fetch('/api/models?action=saveExternal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint, model, apiKey }) });
+            const json = await res.json();
+            if (!json.success) { showAlert(`保存失敗: ${json.error}`, true); return; }
+            if (enable) {
+                await fetch('/api/models?action=switchProvider', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'external' }) });
+                showAlert('外部LLMサーバー設定を保存し、有効化しました！');
+            } else { showAlert('外部LLMサーバー設定を保存しました'); }
+            loadModels();
+        } catch (e) { showAlert(`通信エラー: ${e.message}`, true); }
+    }
+    document.getElementById('extSaveAndEnableBtn').addEventListener('click', () => saveExternalSettings(true));
+    document.getElementById('extSaveOnlyBtn').addEventListener('click', () => saveExternalSettings(false));
+
+    // OpenAI: モデル一覧取得
+    document.getElementById('oaiFetchModelsBtn').addEventListener('click', async () => {
+        const apiKey = document.getElementById('oaiApiKey').value.trim();
+        const fetchBtn = document.getElementById('oaiFetchModelsBtn');
+        const selectEl = document.getElementById('oaiModelSelect');
+
+        if (!apiKey) {
+            alert('OpenAI API キーを入力してください');
+            return;
+        }
+
+        const originalBtnText = fetchBtn.innerHTML;
+        fetchBtn.disabled = true;
+        fetchBtn.innerHTML = '⏳ 取得中...';
+
+        try {
+            const res = await fetch('/api/models?action=fetchModels', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ provider: 'openai', apiKey })
+            });
+            const json = await res.json();
+            if (json.success && json.data?.models?.length > 0) {
+                const models = json.data.models;
+                const currentVal = selectEl.value;
+                selectEl.innerHTML = '';
+
+                models.forEach(m => {
+                    const opt = document.createElement('option');
+                    opt.value = m;
+                    opt.textContent = m;
+                    selectEl.appendChild(opt);
+                });
+
+                const customOpt = document.createElement('option');
+                customOpt.value = 'custom';
+                customOpt.textContent = '✏️ その他 (カスタムモデル指定)';
+                selectEl.appendChild(customOpt);
+
+                if (models.includes(currentVal)) {
+                    selectEl.value = currentVal;
+                } else if (models.includes('gpt-4o-mini')) {
+                    selectEl.value = 'gpt-4o-mini';
+                }
+
+                showAlert(`OpenAI から ${models.length} 件のモデルを取得しました`);
+            } else {
+                showAlert(`モデル一覧取得失敗: ${json.error}`, true);
+            }
+        } catch (e) {
+            showAlert(`通信エラー: ${e.message}`, true);
+        } finally {
+            fetchBtn.disabled = false;
+            fetchBtn.innerHTML = originalBtnText;
+        }
+    });
+
+    document.getElementById('oaiModelSelect').addEventListener('change', (e) => {
+        const customInput = document.getElementById('oaiCustomModel');
+        customInput.style.display = (e.target.value === 'custom') ? 'block' : 'none';
+        if (e.target.value === 'custom') customInput.focus();
+    });
+
+    document.getElementById('oaiTestBtn').addEventListener('click', async () => {
+        const apiKey = document.getElementById('oaiApiKey').value.trim();
+        const mSelect = document.getElementById('oaiModelSelect').value;
+        const model = (mSelect === 'custom') ? document.getElementById('oaiCustomModel').value.trim() : mSelect;
+        const resultBox = document.getElementById('oaiTestResult');
+        if (!apiKey) { alert('OpenAI API キーを入力してください'); return; }
+        resultBox.style.background = '#f3f4f6'; resultBox.style.color = '#374151'; resultBox.style.border = '1px solid #d1d5db';
+        resultBox.innerHTML = '⏳ OpenAI API に接続テスト中...'; resultBox.style.display = 'block';
+        try {
+            const res = await fetch('/api/models?action=testConnection', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'openai', apiKey, model }) });
+            const json = await res.json();
+            if (json.success) {
+                resultBox.style.background = '#f0fdf4'; resultBox.style.color = '#166534'; resultBox.style.border = '1px solid #bbf7d0';
+                resultBox.innerHTML = `✅ <strong>接続成功！</strong> OpenAI応答: <code>${escapeHtml(json.data.reply)}</code>`;
+            } else {
+                resultBox.style.background = '#fee2e2'; resultBox.style.color = '#b91c1c'; resultBox.style.border = '1px solid #fecaca';
+                resultBox.innerHTML = `❌ <strong>接続失敗:</strong> ${escapeHtml(json.error)}`;
+            }
+        } catch (e) {
+            resultBox.style.background = '#fee2e2'; resultBox.style.color = '#b91c1c'; resultBox.style.border = '1px solid #fecaca';
+            resultBox.innerHTML = `❌ <strong>通信エラー:</strong> ${escapeHtml(e.message)}`;
+        }
+    });
+
+    async function saveOpenAISettings(enable = false) {
+        const apiKey = document.getElementById('oaiApiKey').value.trim();
+        const mSelect = document.getElementById('oaiModelSelect').value;
+        const model = (mSelect === 'custom') ? document.getElementById('oaiCustomModel').value.trim() : mSelect;
+        if (!apiKey) { alert('OpenAI API キーを入力してください'); return; }
+        try {
+            const res = await fetch('/api/models?action=saveOpenAI', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey, model }) });
+            const json = await res.json();
+            if (!json.success) { showAlert(`保存失敗: ${json.error}`, true); return; }
+            if (enable) {
+                await fetch('/api/models?action=switchProvider', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ provider: 'openai' }) });
+                showAlert('OpenAI 設定を保存し、有効化しました！');
+            } else { showAlert('OpenAI 設定を保存しました'); }
+            loadModels();
+        } catch (e) { showAlert(`通信エラー: ${e.message}`, true); }
+    }
+    document.getElementById('oaiSaveAndEnableBtn').addEventListener('click', () => saveOpenAISettings(true));
+    document.getElementById('oaiSaveOnlyBtn').addEventListener('click', () => saveOpenAISettings(false));
 
     function deleteCacheOnly(modelId, cacheSize) {
         openDeleteModal({
@@ -665,9 +920,9 @@
             desc: `モデル <strong>${escapeHtml(modelId)}</strong> のキャッシュ（${escapeHtml(cacheSize)}）を削除します。`,
             showCacheOption: false,
             onConfirm: async () => {
-                showLoading(`削除中...`);
+                showLoading('削除中...');
                 try {
-                    const res = await fetch('/api/models?action=deleteCache', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ modelId }) });
+                    const res = await fetch('/api/models?action=deleteCache', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modelId }) });
                     const json = await res.json();
                     hideLoading();
                     if (json.success) { showAlert(`キャッシュを削除しました (${cacheSize} 解放)`); loadModels(); }
@@ -684,9 +939,9 @@
             showCacheOption: isCached,
             cacheSizeFormatted: cacheSize,
             onConfirm: async (deleteCache) => {
-                showLoading(`モデルを削除中...`);
+                showLoading('モデルを削除中...');
                 try {
-                    const res = await fetch('/api/models?action=delete', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ modelId, deleteCache }) });
+                    const res = await fetch('/api/models?action=delete', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modelId, deleteCache }) });
                     const json = await res.json();
                     hideLoading();
                     if (json.success) { showAlert(json.message || `モデルを削除しました`); loadModels(); }
@@ -702,12 +957,12 @@
             desc: `未登録モデル <strong>${escapeHtml(modelId)}</strong> のキャッシュ (${escapeHtml(cacheSize)}) を完全に削除します。`,
             showCacheOption: false,
             onConfirm: async () => {
-                showLoading(`削除中...`);
+                showLoading('削除中...');
                 try {
-                    const res = await fetch('/api/models?action=deleteCache', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ modelId }) });
+                    const res = await fetch('/api/models?action=deleteCache', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modelId }) });
                     const json = await res.json();
                     hideLoading();
-                    if (json.success) { showAlert(`キャッシュを完全消去しました`); loadModels(); }
+                    if (json.success) { showAlert('キャッシュを完全消去しました'); loadModels(); }
                     else showAlert(`失敗: ${json.error}`, true);
                 } catch (e) { hideLoading(); showAlert(`通信エラー: ${e.message}`, true); }
             }
@@ -716,9 +971,9 @@
 
     async function restoreOrphanModel(modelId) {
         try {
-            const res = await fetch('/api/models?action=add', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ modelId, name: modelId.split('/').pop(), description: 'キャッシュから再登録', dtype: 'q4', task: 'text-generation' }) });
+            const res = await fetch('/api/models?action=add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modelId, name: modelId.split('/').pop(), description: 'キャッシュから再登録', dtype: 'q4', task: 'text-generation' }) });
             const json = await res.json();
-            if (json.success) { showAlert(`再登録しました`); loadModels(); }
+            if (json.success) { showAlert('再登録しました'); loadModels(); }
             else showAlert(`再登録失敗: ${json.error}`, true);
         } catch (e) { showAlert(`通信エラー: ${e.message}`, true); }
     }
@@ -732,14 +987,14 @@
         const task = document.getElementById('modelTask').value;
         if (!modelId) return;
         try {
-            const res = await fetch('/api/models?action=add', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ modelId, name, description, dtype, task }) });
+            const res = await fetch('/api/models?action=add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ modelId, name, description, dtype, task }) });
             const json = await res.json();
-            if (json.success) { showAlert(`追加しました`); document.getElementById('addModelForm').reset(); loadModels(); }
+            if (json.success) { showAlert(`モデル [${modelId}] を追加しました`); document.getElementById('addModelForm').reset(); loadModels(); }
             else showAlert(`追加失敗: ${json.error}`, true);
         } catch (e) { showAlert(`通信エラー: ${e.message}`, true); }
     });
 
-    document.getElementById('refreshBtn').addEventListener('click', loadModels);
+    document.getElementById('globalRefreshBtn').addEventListener('click', loadModels);
 
     function escapeHtml(str) {
         if (!str) return '';
@@ -748,6 +1003,5 @@
 
     loadModels();
 </script>
-
 </body>
 </html>

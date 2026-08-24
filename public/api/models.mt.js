@@ -66,6 +66,75 @@ exports.handler = async function() {
                 };
             }
 
+            // プロバイダー切り替え (local | external | openai)
+            if (action === 'switchProvider' || body.action === 'switchProvider') {
+                const provider = body.provider;
+                if (!provider) {
+                    $response.status(400);
+                    return { success: false, error: 'provider が指定されていません' };
+                }
+                const result = translator.switchProvider(provider);
+                return {
+                    success: true,
+                    data: result,
+                    message: `LLMプロバイダーを [${provider}] に切り替えました`
+                };
+            }
+
+            // 外部LLMサーバー設定保存
+            if (action === 'saveExternal' || body.action === 'saveExternal') {
+                const result = translator.saveExternalConfig(body);
+                return {
+                    success: true,
+                    data: result,
+                    message: '外部LLMサーバーの設定を保存しました'
+                };
+            }
+
+            // OpenAI設定保存
+            if (action === 'saveOpenAI' || body.action === 'saveOpenAI') {
+                const result = translator.saveOpenAIConfig(body);
+                return {
+                    success: true,
+                    data: result,
+                    message: 'OpenAI の設定を保存しました'
+                };
+            }
+
+            // 接続テスト
+            if (action === 'testConnection' || body.action === 'testConnection') {
+                const testResult = await translator.testConnection(body);
+                if (!testResult.success) {
+                    $response.status(400);
+                    return {
+                        success: false,
+                        error: testResult.error
+                    };
+                }
+                return {
+                    success: true,
+                    data: testResult,
+                    message: testResult.message || '接続に成功しました！'
+                };
+            }
+
+            // リモートモデル一覧取得 (外部LLMルーター / OpenAI)
+            if (action === 'fetchModels' || body.action === 'fetchModels') {
+                const fetchResult = await translator.fetchRemoteModels(body);
+                if (!fetchResult.success) {
+                    $response.status(400);
+                    return {
+                        success: false,
+                        error: fetchResult.error
+                    };
+                }
+                return {
+                    success: true,
+                    data: fetchResult,
+                    message: fetchResult.message || 'モデル一覧を取得しました'
+                };
+            }
+
             // キャッシュファイルのみ削除 (ディスク容量解放)
             if (action === 'deleteCache' || body.action === 'deleteCache') {
                 const modelId = body.modelId;
