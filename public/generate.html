@@ -58,17 +58,32 @@
             border-color: #d1d5db;
         }
         .btn-secondary:hover {
-            background: #f3f4f6;
+            background: #f9fafb;
+            border-color: #9ca3af;
         }
         .btn-danger {
-            background: #ffffff;
-            color: #dc2626;
-            border-color: #fecaca;
+            background: #dc2626;
+            color: #ffffff;
         }
         .btn-danger:hover {
-            background: #fee2e2;
+            background: #b91c1c;
         }
-        .btn:disabled {
+        .btn-xs {
+            padding: 4px 10px;
+            font-size: 12px;
+            font-weight: 500;
+            border-radius: 4px;
+            border: 1px solid #3b82f6;
+            background: #eff6ff;
+            color: #1d4ed8;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-xs:hover {
+            background: #2563eb;
+            color: #ffffff;
+        }
+        .btn:disabled, .btn-xs:disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
@@ -99,12 +114,17 @@
         .form-group {
             margin-bottom: 20px;
         }
+        .label-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
         label {
             display: block;
             font-size: 13px;
             font-weight: 600;
             color: #374151;
-            margin-bottom: 6px;
         }
         textarea, input[type="text"], input[type="number"], select {
             width: 100%;
@@ -138,15 +158,16 @@
             min-height: 400px;
             background: #f9fafb;
             border-radius: 8px;
-            border: 2px dashed #d1d5db;
+            border: 2px dashed #e5e7eb;
             position: relative;
             overflow: hidden;
         }
-        .preview-img {
+        .preview-pane img {
             max-width: 100%;
-            max-height: 520px;
+            max-height: 600px;
+            border-radius: 6px;
             object-fit: contain;
-            border-radius: 4px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
         }
         .placeholder-text {
             color: #9ca3af;
@@ -162,6 +183,12 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
             margin: 0 auto 16px auto;
+        }
+        .spinner-sm {
+            width: 32px;
+            height: 32px;
+            border-width: 3px;
+            margin-bottom: 12px;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
@@ -200,7 +227,7 @@
 
         .result-meta {
             margin-top: 12px;
-            padding: 10px 14px;
+            padding: 12px 14px;
             background: #f0fdf4;
             border: 1px solid #bbf7d0;
             border-radius: 6px;
@@ -208,9 +235,55 @@
             color: #166534;
             display: none;
         }
+        .result-meta-item {
+            margin-bottom: 4px;
+        }
+        .result-meta-item:last-child {
+            margin-bottom: 0;
+        }
+
+        /* 全画面翻訳・ローディングオーバーレイ */
+        #translationOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(2px);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: #ffffff;
+            user-select: none;
+        }
+        .overlay-card {
+            background: #ffffff;
+            color: #1f2937;
+            padding: 24px 32px;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
+
+<!-- 翻訳実行中の操作ブロックオーバーレイ -->
+<div id="translationOverlay">
+    <div class="overlay-card">
+        <div class="spinner spinner-sm"></div>
+        <h4 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 600;">プロンプトを翻訳中...</h4>
+        <p style="margin: 0; font-size: 13px; color: #6b7280;">LFM2.5 モデルで英語へ変換しています。<br>しばらくお待ちください。</p>
+    </div>
+</div>
 
 <header>
     <div class="header-title">
@@ -234,93 +307,103 @@
             <input type="hidden" id="parentId" value="">
 
             <div class="form-group">
-                <label for="prompt">プロンプト (Prompt) <span style="color:red">*</span></label>
-                <textarea id="prompt" placeholder="例: 1girl, cute, masterpiece, best quality, anime style..." required></textarea>
+                <div class="label-row">
+                    <label for="prompt">プロンプト (Prompt / 日本語入力可) <span style="color:red">*</span></label>
+                    <button type="button" class="btn-xs" id="translatePromptBtn" title="入力した日本語の英語翻訳プレビューを確認します">🌐 翻訳プレビュー</button>
+                </div>
+                <textarea id="prompt" placeholder="日本語・英語どちらでも入力可能（例: 金髪の少女、美麗な背景、サイバーパンク / 1girl, cute, anime style）" required></textarea>
+                <div id="promptTransNotice" style="font-size: 12px; color: #4b5563; margin-top: 4px; padding: 6px 10px; background: #f3f4f6; border-radius: 4px; display: none; word-break: break-all;"></div>
             </div>
 
             <div class="form-group">
-                <label for="negativePrompt">ネガティブプロンプト (Negative Prompt)</label>
-                <textarea id="negativePrompt" placeholder="例: worst quality, low quality, bad anatomy, blurry..."></textarea>
+                <div class="label-row">
+                    <label for="negativePrompt">ネガティブプロンプト (Negative Prompt / 日本語入力可)</label>
+                    <button type="button" class="btn-xs" id="translateNegBtn" title="入力した日本語の英語翻訳プレビューを確認します">🌐 翻訳プレビュー</button>
+                </div>
+                <textarea id="negativePrompt" placeholder="日本語・英語どちらでも入力可能（例: 低品質、崩れた手足 / worst quality, low quality, blurry）"></textarea>
+                <div id="negTransNotice" style="font-size: 12px; color: #4b5563; margin-top: 4px; padding: 6px 10px; background: #f3f4f6; border-radius: 4px; display: none; word-break: break-all;"></div>
             </div>
 
             <div class="form-group">
-                <label for="resolutionPreset">解像度プリセット (Resolution)</label>
+                <label for="resolutionPreset" style="margin-bottom: 6px;">解像度プリセット (Resolution)</label>
                 <select id="resolutionPreset">
-                    <option value="512x512">512 x 512 (標準・正方形)</option>
+                    <option value="custom">カスタム</option>
                 </select>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="width">幅 (Width)</label>
+                    <label for="width" style="margin-bottom: 6px;">幅 (Width)</label>
                     <input type="number" id="width" value="512" min="64" max="2048" step="64" />
                 </div>
                 <div class="form-group">
-                    <label for="height">高さ (Height)</label>
+                    <label for="height" style="margin-bottom: 6px;">高さ (Height)</label>
                     <input type="number" id="height" value="512" min="64" max="2048" step="64" />
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="steps">ステップ数 (Steps)</label>
+                    <label for="steps" style="margin-bottom: 6px;">ステップ数 (Steps)</label>
                     <input type="number" id="steps" value="20" min="1" max="150" />
                 </div>
                 <div class="form-group">
-                    <label for="cfgScale">CFG Scale</label>
-                    <input type="number" id="cfgScale" value="7.0" step="0.5" min="1" max="30" />
+                    <label for="cfgScale" style="margin-bottom: 6px;">CFGスケール (CFG Scale)</label>
+                    <input type="number" id="cfgScale" value="7.0" min="1.0" max="30.0" step="0.5" />
                 </div>
             </div>
 
             <div class="form-row">
                 <div class="form-group">
-                    <label for="seed">シード値 (Seed: -1でランダム)</label>
-                    <input type="number" id="seed" value="-1" />
-                </div>
-                <div class="form-group">
-                    <label for="sampler">サンプラー (Sampler)</label>
+                    <label for="sampler" style="margin-bottom: 6px;">サンプラー (Sampler)</label>
                     <select id="sampler">
                         <option value="euler_a">Euler a</option>
                     </select>
                 </div>
+                <div class="form-group">
+                    <label for="seed" style="margin-bottom: 6px;">シード値 (Seed: -1でランダム)</label>
+                    <input type="number" id="seed" value="-1" />
+                </div>
             </div>
 
-            <div style="display: flex; gap: 8px; margin-top: 8px;">
-                <button type="submit" id="submitBtn" class="btn btn-primary" style="flex: 1;">
-                    🚀 画像を生成する
-                </button>
-                <button type="button" id="cancelBtn" class="btn btn-danger" style="display: none;">
-                    🛑 生成を中止
-                </button>
+            <div style="margin-top: 24px; display: flex; gap: 12px;">
+                <button type="submit" id="submitBtn" class="btn btn-primary" style="flex: 1;">✨ 画像を生成する</button>
+                <button type="button" id="cancelBtn" class="btn btn-danger" style="display: none;">🛑 中断する</button>
             </div>
         </form>
     </div>
 
-    <!-- 右ペイン: プレビュー＆結果 -->
+    <!-- 右ペイン: プレビュー & 結果 -->
     <div class="card" style="display: flex; flex-direction: column;">
-        <h3 style="margin-top: 0; margin-bottom: 16px; font-size: 16px;">生成プレビュー</h3>
-        <div id="previewPane" class="preview-pane">
+        <h3 style="margin-top: 0; font-size: 16px; color: #374151;">生成結果プレビュー</h3>
+        
+        <div id="previewPane" class="preview-pane" style="flex: 1;">
+            <div id="emptyPreview" class="placeholder-text">
+                <div style="font-size: 40px; margin-bottom: 8px;">🖼️</div>
+                <p>パラメータを設定して「画像を生成する」を押してください</p>
+                <p style="font-size: 12px; color: #9ca3af;">※ 日本語で入力した内容は日本語のまま保存・表示されます</p>
+            </div>
+
             <div id="loadingIndicator" style="display: none; text-align: center;">
                 <div class="spinner"></div>
-                <div id="elapsedTimer" class="timer-display">0.0s</div>
-                <p style="font-size: 14px; color: #4b5563; margin-top: 4px;">
-                    sd-server で画像を生成中...<br>
-                    <span style="font-size:12px; color:#9ca3af;">(サーバーの処理完了までお待ちください)</span>
-                </p>
+                <div class="timer-display" id="elapsedTimer">0.0s</div>
+                <p style="font-weight: 600; color: #1f2937; margin: 4px 0;">画像を生成しています...</p>
+                <p style="font-size: 12px; color: #6b7280; margin: 0;">※ stable-diffusion.cpp 処理中 (途中で中断可能)</p>
             </div>
-            <div id="emptyPreview" class="placeholder-text">
-                ここに生成された画像が表示されます
-            </div>
-            <img id="resultImage" class="preview-img" style="display: none;" alt="Generated Result">
+
+            <img id="resultImage" src="" alt="生成画像" style="display: none;" />
         </div>
 
         <div id="resultMeta" class="result-meta">
-            🎉 生成完了: 所要時間 <strong id="spentTimeLabel">0.00 秒</strong> (Seed: <span id="usedSeedLabel">-</span>)
+            <div class="result-meta-item">⏱️ <strong>生成所要時間:</strong> <span id="spentTimeLabel">-</span></div>
+            <div class="result-meta-item">🌱 <strong>使用シード値:</strong> <span id="usedSeedLabel">-</span></div>
+            <div class="result-meta-item" id="translatedPromptRow" style="display: none;">
+                🌐 <strong>英訳プロンプト:</strong> <span id="translatedPromptLabel" style="color: #1e40af;">-</span>
+            </div>
         </div>
 
-        <div id="resultActions" style="margin-top: 16px; display: none; justify-content: flex-end; gap: 8px;">
-            <a id="viewInMenuBtn" href="/menu.html" class="btn btn-secondary">一覧で確認する</a>
-            <a id="downloadBtn" href="#" download="generated.png" class="btn btn-primary">💾 ダウンロード</a>
+        <div id="resultActions" style="margin-top: 16px; display: none; gap: 12px;">
+            <a id="downloadBtn" href="" download="generated.png" class="btn btn-secondary" style="flex: 1;">⬇️ ダウンロード</a>
         </div>
     </div>
 </div>
@@ -328,28 +411,120 @@
 <script>
     const urlParams = new URLSearchParams(window.location.search);
     const editId = urlParams.get('id');
-    let timerInterval = null;
-    let currentAbortController = null;
 
-    // 解像度プリセット変更時
-    document.getElementById('resolutionPreset').addEventListener('change', (e) => {
-        const [w, h] = e.target.value.split('x');
-        if (w && h) {
-            document.getElementById('width').value = w;
-            document.getElementById('height').value = h;
+    let currentAbortController = null;
+    let timerInterval = null;
+
+    const overlay = document.getElementById('translationOverlay');
+
+    function showOverlay() {
+        if (overlay) overlay.style.display = 'flex';
+    }
+
+    function hideOverlay() {
+        if (overlay) overlay.style.display = 'none';
+    }
+
+    // 単語・文章翻訳共通関数
+    async function translateText(text) {
+        if (!text || !text.trim()) return '';
+        showOverlay();
+        try {
+            const res = await fetch('/api/translate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: text.trim() })
+            });
+            const json = await res.json();
+            if (json.success && json.translatedText) {
+                return json.translatedText;
+            }
+            return text;
+        } finally {
+            hideOverlay();
+        }
+    }
+
+    // 翻訳ボタンイベント設定
+    document.getElementById('translatePromptBtn').addEventListener('click', async () => {
+        const input = document.getElementById('prompt');
+        const notice = document.getElementById('promptTransNotice');
+        const btn = document.getElementById('translatePromptBtn');
+        const text = input.value.trim();
+        if (!text) return;
+        
+        btn.disabled = true;
+        try {
+            const translated = await translateText(text);
+            notice.style.display = 'block';
+            notice.innerHTML = `<strong>英訳プレビュー:</strong> ${escapeHtml(translated)}`;
+        } catch (e) {
+            notice.style.display = 'block';
+            notice.textContent = '翻訳に失敗しました';
+        } finally {
+            btn.disabled = false;
         }
     });
 
+    document.getElementById('translateNegBtn').addEventListener('click', async () => {
+        const input = document.getElementById('negativePrompt');
+        const notice = document.getElementById('negTransNotice');
+        const btn = document.getElementById('translateNegBtn');
+        const text = input.value.trim();
+        if (!text) return;
+
+        btn.disabled = true;
+        try {
+            const translated = await translateText(text);
+            notice.style.display = 'block';
+            notice.innerHTML = `<strong>英訳プレビュー:</strong> ${escapeHtml(translated)}`;
+        } catch (e) {
+            notice.style.display = 'block';
+            notice.textContent = '翻訳に失敗しました';
+        } finally {
+            btn.disabled = false;
+        }
+    });
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    // 幅・高さの入力値に合わせてセレクトボックスの選択状態を同期
+    function syncResolutionPreset(w, h) {
+        const resSelect = document.getElementById('resolutionPreset');
+        const targetVal = `${w}x${h}`;
+        if (resSelect.querySelector(`option[value="${targetVal}"]`)) {
+            resSelect.value = targetVal;
+        } else {
+            // リストにないカスタム解像度の場合は選択解除またはcustom
+            let customOpt = resSelect.querySelector('option[value="custom"]');
+            if (!customOpt) {
+                customOpt = document.createElement('option');
+                customOpt.value = 'custom';
+                customOpt.textContent = 'カスタム解像度';
+                resSelect.appendChild(customOpt);
+            }
+            resSelect.value = 'custom';
+        }
+    }
+
+    // 設定ロード
     async function loadConfig() {
         try {
             const res = await fetch('/api/config');
             const data = await res.json();
             if (!data.success) return;
 
-            const defs = data.defaults || {};
             const opts = data.options || {};
+            const defs = data.defaults || {};
 
-            // 解像度プリセット反映
+            // 解像度プリセット生成
             if (opts.resolutions && Array.isArray(opts.resolutions)) {
                 const resSelect = document.getElementById('resolutionPreset');
                 resSelect.innerHTML = '';
@@ -357,14 +532,20 @@
                     const opt = document.createElement('option');
                     opt.value = `${r.width}x${r.height}`;
                     opt.textContent = r.label || `${r.width} x ${r.height}`;
-                    if (r.width === (defs.width || 512) && r.height === (defs.height || 512)) {
-                        opt.selected = true;
-                    }
                     resSelect.appendChild(opt);
+                });
+
+                resSelect.addEventListener('change', (e) => {
+                    if (e.target.value === 'custom') return;
+                    const parts = e.target.value.split('x').map(Number);
+                    if (parts.length === 2 && parts[0] && parts[1]) {
+                        document.getElementById('width').value = parts[0];
+                        document.getElementById('height').value = parts[1];
+                    }
                 });
             }
 
-            // サンプラー候補反映
+            // サンプラー生成
             if (opts.samplers && Array.isArray(opts.samplers)) {
                 const samplerSelect = document.getElementById('sampler');
                 samplerSelect.innerHTML = '';
@@ -372,17 +553,21 @@
                     const opt = document.createElement('option');
                     opt.value = s.value;
                     opt.textContent = s.label || s.value;
-                    if (s.value === defs.sampler_name) {
-                        opt.selected = true;
-                    }
                     samplerSelect.appendChild(opt);
                 });
+                if (defs.sampler_name) {
+                    samplerSelect.value = defs.sampler_name;
+                }
             }
 
             // デフォルト値の反映
             if (!editId) {
-                if (defs.width) document.getElementById('width').value = defs.width;
-                if (defs.height) document.getElementById('height').value = defs.height;
+                const initW = defs.width || 512;
+                const initH = defs.height || 512;
+                document.getElementById('width').value = initW;
+                document.getElementById('height').value = initH;
+                syncResolutionPreset(initW, initH);
+
                 if (defs.steps) document.getElementById('steps').value = defs.steps;
                 if (defs.cfg_scale) document.getElementById('cfgScale').value = defs.cfg_scale;
                 if (defs.seed !== undefined) document.getElementById('seed').value = defs.seed;
@@ -403,6 +588,19 @@
         }
     }
 
+    // 幅・高さの直接入力時もセレクトボックスと連動
+    document.getElementById('width').addEventListener('input', () => {
+        const w = parseInt(document.getElementById('width').value, 10);
+        const h = parseInt(document.getElementById('height').value, 10);
+        syncResolutionPreset(w, h);
+    });
+
+    document.getElementById('height').addEventListener('input', () => {
+        const w = parseInt(document.getElementById('width').value, 10);
+        const h = parseInt(document.getElementById('height').value, 10);
+        syncResolutionPreset(w, h);
+    });
+
     async function initPage() {
         await loadConfig();
 
@@ -418,18 +616,18 @@
                     const item = json.data;
                     document.getElementById('prompt').value = item.prompt || '';
                     document.getElementById('negativePrompt').value = item.negative_prompt || '';
-                    document.getElementById('width').value = item.width || 512;
-                    document.getElementById('height').value = item.height || 512;
+                    
+                    const w = item.width || 512;
+                    const h = item.height || 512;
+                    document.getElementById('width').value = w;
+                    document.getElementById('height').value = h;
+                    syncResolutionPreset(w, h);
+
                     document.getElementById('steps').value = item.steps || 20;
                     document.getElementById('cfgScale').value = item.cfg_scale || 7.0;
                     document.getElementById('seed').value = item.seed !== undefined ? item.seed : -1;
                     if (item.sampler_name) {
                         document.getElementById('sampler').value = item.sampler_name;
-                    }
-                    const resKey = `${item.width}x${item.height}`;
-                    const resSelect = document.getElementById('resolutionPreset');
-                    if (resSelect.querySelector(`option[value="${resKey}"]`)) {
-                        resSelect.value = resKey;
                     }
 
                     if (item.image_path) {
@@ -437,6 +635,12 @@
                         img.src = item.image_path;
                         img.style.display = 'block';
                         document.getElementById('emptyPreview').style.display = 'none';
+                    }
+
+                    if (item.translated_prompt) {
+                        const notice = document.getElementById('promptTransNotice');
+                        notice.style.display = 'block';
+                        notice.innerHTML = `<strong>英訳:</strong> ${escapeHtml(item.translated_prompt)}`;
                     }
                 }
             } catch (e) {
@@ -474,11 +678,14 @@
         const resultMeta = document.getElementById('resultMeta');
         const spentTimeLabel = document.getElementById('spentTimeLabel');
         const usedSeedLabel = document.getElementById('usedSeedLabel');
+        const translatedPromptRow = document.getElementById('translatedPromptRow');
+        const translatedPromptLabel = document.getElementById('translatedPromptLabel');
         const elapsedTimer = document.getElementById('elapsedTimer');
 
         errorBox.style.display = 'none';
         errorBox.textContent = '';
         resultMeta.style.display = 'none';
+        translatedPromptRow.style.display = 'none';
         submitBtn.disabled = true;
         cancelBtn.style.display = 'inline-flex';
         emptyPreview.style.display = 'none';
@@ -539,6 +746,13 @@
             const finalSec = data.durationSec || ((Date.now() - startTimestamp) / 1000).toFixed(2);
             spentTimeLabel.textContent = `${finalSec} 秒`;
             usedSeedLabel.textContent = data.data.seed !== undefined ? data.data.seed : '-';
+            
+            const trans = data.data.translated_prompt || (data.translated && data.translated.prompt);
+            if (trans) {
+                translatedPromptLabel.textContent = trans;
+                translatedPromptRow.style.display = 'block';
+            }
+
             resultMeta.style.display = 'block';
 
             resultImage.src = data.data.image_path;

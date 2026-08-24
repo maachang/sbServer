@@ -4,6 +4,8 @@ CREATE TABLE IF NOT EXISTS images (
     title TEXT DEFAULT '',
     prompt TEXT NOT NULL,
     negative_prompt TEXT DEFAULT '',
+    translated_prompt TEXT DEFAULT '',
+    translated_negative_prompt TEXT DEFAULT '',
     width INTEGER DEFAULT 512,
     height INTEGER DEFAULT 512,
     steps INTEGER DEFAULT 20,

@@ -5,5 +5,8 @@
   "scripts": {
     "start": "maachang",
     "build": "mcbuild"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^4.2.0"
   }
 }

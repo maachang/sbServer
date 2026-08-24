@@ -4,3 +4,5 @@ log/
 *.local.json
 .DS_Store
 .claudeWork/
+
+public/uploads/*

@@ -2,17 +2,21 @@
 
 `sdServer` は、Stable Diffusion サーバー（例: `stable-diffusion.cpp` などの OpenAI 互換 `/v1/images/generations` エンドポイントを持つサーバー）と連携し、Webブラウザから直感的に画像生成・履歴管理・再生成を行える Web アプリケーションです。
 
-超軽量 Web フレームワーク `maachang` ベースで構築されているので、bunをインストールして、maachang(https://github.com/maachang/maachang) リポジトリをcloneして、$MAACHANG_HOME + PATH=$PATH:$MAACHANG_HOME/bin の環境変数を設定する必要があります。
+軽量 Web フレームワーク「maachang」ベースで構築されています。
 
 ---
 
 ## 🌟 主な機能
 
 - **画像生成インターフェース (`/generate.html`)**
-  - プロンプト (Prompt) およびネガティブプロンプト (Negative Prompt) の入力
+  - プロンプト (Prompt) およびネガティブプロンプト (Negative Prompt) の入力（**日本語入力 & 自動翻訳対応**）
   - 解像度 (Width / Height)、サンプラー (Sampler)、ステップ数 (Steps)、CFG Scale、Seed値の柔軟な設定
   - 生成進行中のスピナー表示および所要時間（リアルタイム秒数・ミリ秒）の計測・表示
   - 生成中断（キャンセル）リクエスト対応
+- **Transformers.js + LFM2.5 による日本語自動翻訳・メモリ常駐**
+  - Node.js 内で `LiquidAI/LFM2.5-1.2B-JP-ONNX` (Q4) モデルをロード・メモリ常駐
+  - 別途の外部プロセスや Python スクリプト不要で、同一 Node.js プロセス内で高速に英語プロンプトへ変換
+  - UI 上の「🌐 英語に翻訳」ボタンで即座に翻訳結果を確認・微調整可能
 - **生成履歴・ギャラリー (`/menu.html`)**
   - 生成した画像一覧のグリッド表示（最新順）
   - プロンプト / ネガティブプロンプトでのキーワード検索
@@ -38,14 +42,16 @@ sdServer/
 │   └── session.json          # セッション設定
 ├── lib/                      # サーバーサイド共通ライブラリ
 │   ├── imageModel.js         # SQLite を用いた images テーブルの CRUD 処理
-│   └── sdClient.js           # sd-server との HTTP 通信・生成・キャンセル・画像保存処理
+│   ├── sdClient.js           # sd-server との HTTP 通信・生成・キャンセル・画像保存処理
+│   └── translator.js         # Transformers.js (LFM2.5-1.2B-JP) 常駐型翻訳モジュール
 ├── public/                   # 静的ファイルおよび Web エンドポイント (.mt.js)
 │   ├── api/
 │   │   ├── config.mt.js      # GET /api/config (設定値・UI選択肢取得)
 │   │   ├── delete.mt.js      # POST /api/delete (画像削除)
-│   │   ├── generate.mt.js    # POST /api/generate (画像生成実行)
+│   │   ├── generate.mt.js    # POST /api/generate (画像生成実行・自動翻訳連携)
 │   │   ├── image.mt.js       # GET /api/image (単一画像詳細取得)
-│   │   └── images.mt.js      # GET /api/images (画像一覧・検索取得)
+│   │   ├── images.mt.js      # GET /api/images (画像一覧・検索取得)
+│   │   └── translate.mt.js   # POST /api/translate (日本語→英語翻訳API)
 │   ├── uploads/              # 生成された画像ファイル保存先 (.png)
 │   ├── generate.html         # 画像生成画面
 │   ├── index.html            # ルートリダイレクト画面 (/menu.html へ転送)
@@ -128,31 +134,17 @@ maachang
 | メソッド | パス | 説明 | 主なパラメータ |
 |---|---|---|---|
 | `GET` | `/api/config` | UI生成用の設定・デフォルト値取得 | なし |
-| `POST` | `/api/generate` | 画像生成実行 | `prompt`, `negative_prompt`, `width`, `height`, `steps`, `cfg_scale`, `seed`, `sampler_name` |
+| `POST` | `/api/generate` | 画像生成実行（日本語の場合は自動翻訳） | `prompt`, `negative_prompt`, `width`, `height`, `steps`, `cfg_scale`, `seed`, `sampler_name` |
+| `POST` | `/api/translate` | プロンプト翻訳 API | `text` (日本語テキスト) |
 | `GET` | `/api/images` | 生成履歴一覧取得 | `keyword`, `limit` (デフォルト: 20), `offset` (デフォルト: 0) |
 | `GET` | `/api/image` | 単一画像詳細取得 | `id` |
 | `POST` | `/api/delete` | 画像レコードおよびファイルの削除 | `id` |
 
 ---
 
-## 🗄️ データベース (`images` テーブル)
+## 🌐 日本語プロンプト翻訳 (Transformers.js + LFM2.5-1.2B-JP)
 
-`schema/images.sql` に基づいて SQLite 上に管理されます。
+Node.js 内で動作する `@huggingface/transformers` と、ONNX 版の日本語モデル `LiquidAI/LFM2.5-1.2B-JP-ONNX` (Q4) を利用しています。
 
-| カラム名 | 型 | 説明 |
-|---|---|---|
-| `id` | INTEGER PRIMARY KEY | 画像レコードID (AUTOINCREMENT) |
-| `title` | TEXT | タイトル（オプション） |
-| `prompt` | TEXT | 生成プロンプト |
-| `negative_prompt` | TEXT | ネガティブプロンプト |
-| `width` | INTEGER | 画像横幅 (px) |
-| `height` | INTEGER | 画像縦幅 (px) |
-| `steps` | INTEGER | サンプリングステップ数 |
-| `cfg_scale` | REAL | CFG Scale (Guidance Scale) |
-| `seed` | INTEGER | 生成シード値 (-1 はランダム) |
-| `sampler_name` | TEXT | サンプラー方式名 |
-| `image_path` | TEXT | Web公開パス (`/uploads/...`) |
-| `parent_id` | INTEGER | 派生元画像ID（バリエーション生成時） |
-| `generation_time_ms`| INTEGER | 生成所要時間 (ミリ秒) |
-| `created_at` | TEXT | 作成日時 (ISO文字列) |
-| `updated_at` | TEXT | 更新日時 (ISO文字列) |
+- **メモリ常駐**: 初回リクエスト時にモデルをロードし、以後はメモリ上に常駐するため、オーバーヘッドなく高速に推論可能です。
+- **純粋な JS / Node.js 完結**: 外部プロセスや Python スクリプトの都度呼び出しが発生しません。

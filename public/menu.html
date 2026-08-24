@@ -63,19 +63,20 @@
             border-color: #d1d5db;
         }
         .btn-secondary:hover {
-            background: #f3f4f6;
+            background: #f9fafb;
+            border-color: #9ca3af;
         }
         .btn-danger {
-            background: #ffffff;
+            background: #fee2e2;
             color: #dc2626;
             border-color: #fecaca;
         }
         .btn-danger:hover {
-            background: #fee2e2;
+            background: #fecaca;
         }
         .btn-sm {
-            padding: 4px 10px;
-            font-size: 12px;
+            padding: 6px 12px;
+            font-size: 13px;
         }
 
         .container {
@@ -94,6 +95,7 @@
             display: flex;
             gap: 12px;
             align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
         .search-input {
             flex: 1;
@@ -107,15 +109,14 @@
             border-color: #2563eb;
             box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
         }
-
-        /* 統計・件数 */
         .stats-bar {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
             font-size: 14px;
             color: #6b7280;
+            margin-bottom: 16px;
+            padding: 0 4px;
         }
 
         /* グリッドレイアウト */
@@ -124,6 +125,8 @@
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 20px;
         }
+
+        /* カード */
         .card {
             background: #ffffff;
             border-radius: 8px;
@@ -136,13 +139,13 @@
         }
         .card:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.08);
+            box-shadow: 0 6px 12px -2px rgba(0,0,0,0.1);
         }
         .card-img-wrap {
-            position: relative;
             width: 100%;
-            padding-top: 100%; /* 1:1 Aspect Ratio */
-            background: #e5e7eb;
+            padding-top: 100%;
+            position: relative;
+            background: #f3f4f6;
             overflow: hidden;
         }
         .card-img {
@@ -164,10 +167,21 @@
             font-size: 13px;
             color: #1f2937;
             font-weight: 500;
-            margin-bottom: 8px;
+            margin-bottom: 4px;
             line-height: 1.4;
             display: -webkit-box;
-            -webkit-line-clamp: 3;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            word-break: break-all;
+        }
+        .card-sub-prompt {
+            font-size: 11px;
+            color: #6b7280;
+            margin-bottom: 8px;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
             word-break: break-all;
@@ -256,7 +270,7 @@
 <div class="container">
     <!-- 検索フォーム -->
     <div class="search-section">
-        <input type="text" id="searchInput" class="search-input" placeholder="プロンプトやネガティブプロンプトで検索..." />
+        <input type="text" id="searchInput" class="search-input" placeholder="日本語または英語のプロンプトで検索..." />
         <button id="searchBtn" class="btn btn-secondary">🔍 検索</button>
         <button id="clearBtn" class="btn btn-secondary" style="display: none;">クリア</button>
     </div>
@@ -339,12 +353,19 @@
                     timeBadge = `<span class="badge badge-time">⏱️ ${sec}s</span>`;
                 }
 
+                // 英訳がある場合はサブ表示
+                let subPromptHtml = '';
+                if (item.translated_prompt && item.translated_prompt !== item.prompt) {
+                    subPromptHtml = `<div class="card-sub-prompt" title="英訳: ${escapeHtml(item.translated_prompt)}">🌐 ${escapeHtml(item.translated_prompt)}</div>`;
+                }
+
                 card.innerHTML = `
                     <div class="card-img-wrap">
                         <img src="${item.image_path}" alt="generated" class="card-img" onclick="openModal('${item.image_path}')" loading="lazy" />
                     </div>
                     <div class="card-body">
                         <div class="card-prompt" title="${escapeHtml(item.prompt)}">${escapeHtml(item.prompt)}</div>
+                        ${subPromptHtml}
                         <div class="card-meta">
                             <span class="badge">${item.width}x${item.height}</span>
                             <span class="badge">Steps: ${item.steps}</span>
@@ -449,7 +470,9 @@
 
     document.getElementById('searchInput').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
-            document.getElementById('searchBtn').click();
+            currentKeyword = document.getElementById('searchInput').value.trim();
+            document.getElementById('clearBtn').style.display = currentKeyword ? 'inline-flex' : 'none';
+            loadImages(0);
         }
     });
 
@@ -460,7 +483,7 @@
         loadImages(0);
     });
 
-    // 初期ロード
+    // 初回読み込み
     loadImages(0);
 </script>
 

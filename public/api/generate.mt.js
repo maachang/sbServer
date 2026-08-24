@@ -7,6 +7,7 @@ exports.handler = async function() {
     const imageSchema = $loadLib('validates/image.js');
     const sdClient = $loadLib('sdClient.js');
     const imageModel = $loadLib('imageModel.js');
+    const translator = $loadLib('translator.js');
 
     const body = $request.body || {};
     const checkResult = validate.check(body, imageSchema);
@@ -24,18 +25,50 @@ exports.handler = async function() {
     const clientSignal = $request.raw?.signal;
 
     try {
-        // sd-server へ生成リクエスト (クライアント切断シグナル連動)
-        const genResult = await sdClient.generate(params, clientSignal);
+        // 元の入力（日本語などユーザー入力そのもの）を保持
+        const userPrompt = params.prompt;
+        const userNegativePrompt = params.negative_prompt || '';
+
+        let translatedPrompt = '';
+        let translatedNegativePrompt = '';
+
+        // sd-server に渡すプロンプトを準備
+        let effectivePrompt = userPrompt;
+        let effectiveNegativePrompt = userNegativePrompt;
+
+        if (translator && translator.translateJaToEn) {
+            if (translator.containsJapanese(userPrompt)) {
+                translatedPrompt = await translator.translateJaToEn(userPrompt);
+                effectivePrompt = translatedPrompt;
+                console.log(`[generate] Prompt translated: "${userPrompt}" -> "${effectivePrompt}"`);
+            }
+            if (translator.containsJapanese(userNegativePrompt)) {
+                translatedNegativePrompt = await translator.translateJaToEn(userNegativePrompt);
+                effectiveNegativePrompt = translatedNegativePrompt;
+                console.log(`[generate] Negative prompt translated: "${userNegativePrompt}" -> "${effectiveNegativePrompt}"`);
+            }
+        }
+
+        // sd-server へ生成リクエスト (実際に渡すのは英語プロンプト)
+        const sdParams = {
+            ...params,
+            prompt: effectivePrompt,
+            negative_prompt: effectiveNegativePrompt
+        };
+
+        const genResult = await sdClient.generate(sdParams, clientSignal);
 
         const durationMs = Date.now() - startTime;
 
         // 画像ファイル保存
         const imagePath = sdClient.saveImageFile(genResult.base64Data);
 
-        // DB登録 (生成所要時間をミリ秒で記録)
+        // DB登録 (prompt には元の日本語を保持し、translated_prompt に英語を記録)
         const recordId = imageModel.createImage({
-            prompt: params.prompt,
-            negative_prompt: params.negative_prompt,
+            prompt: userPrompt,
+            negative_prompt: userNegativePrompt,
+            translated_prompt: translatedPrompt,
+            translated_negative_prompt: translatedNegativePrompt,
             width: params.width,
             height: params.height,
             steps: params.steps,
@@ -53,7 +86,11 @@ exports.handler = async function() {
             success: true,
             data: createdItem,
             durationMs: durationMs,
-            durationSec: (durationMs / 1000).toFixed(2)
+            durationSec: (durationMs / 1000).toFixed(2),
+            translated: {
+                prompt: translatedPrompt || null,
+                negative_prompt: translatedNegativePrompt || null
+            }
         };
     } catch (e) {
         $response.status(500);
