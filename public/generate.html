@@ -375,6 +375,7 @@
         <span id="pageModeBadge" style="font-size: 13px; font-weight: normal; color: #6b7280; margin-left: 8px;">新規画像生成</span>
     </div>
     <div>
+        <a href="/generate.html?mode=new" class="btn btn-primary" style="margin-right: 8px;" title="プロンプトを初期化して新規作成を開始します">➕ 新規作成</a>
         <a href="/models.html" class="btn btn-secondary" style="margin-right: 8px;">🤖 LLM設定</a>
         <a href="/menu.html" class="btn btn-secondary">一覧へ戻る</a>
     </div>
@@ -828,9 +829,17 @@
             if (!editId) {
                 const saved = loadParamsFromStorage();
                 if (saved) {
-                    applyParams(saved);
+                    applyParams({
+                        ...saved,
+                        prompt: '',          // 新規作成時はプロンプトを初期化
+                        negative_prompt: '', // 新規作成時はネガティブプロンプトを初期化
+                        prompt_assist: true  // 新規作成時はAIアシストもON（初期値）に初期化
+                    });
                 } else {
                     applyParams({
+                        prompt: '',
+                        negative_prompt: '',
+                        prompt_assist: true,
                         width: defs.width || 512,
                         height: defs.height || 512,
                         steps: defs.steps || 20,
@@ -839,6 +848,13 @@
                         sampler_name: defs.sampler_name || 'euler_a'
                     });
                 }
+                document.getElementById('prompt').value = '';
+                document.getElementById('negativePrompt').value = '';
+                if (document.getElementById('promptAssistCheck')) {
+                    document.getElementById('promptAssistCheck').checked = true;
+                }
+                document.getElementById('promptTransNotice').style.display = 'none';
+                document.getElementById('negTransNotice').style.display = 'none';
             }
 
         } catch (e) {
@@ -847,7 +863,7 @@
     }
 
     // 各入力フィールドの変更を自動保存
-    ['prompt', 'negativePrompt', 'width', 'height', 'steps', 'cfgScale', 'sampler', 'seed'].forEach(id => {
+    ['prompt', 'negativePrompt', 'width', 'height', 'steps', 'cfgScale', 'sampler', 'seed', 'promptAssistCheck'].forEach(id => {
         const el = document.getElementById(id);
         if (el) {
             el.addEventListener('input', saveParamsToStorage);
@@ -862,6 +878,9 @@
         localStorage.removeItem(STORAGE_KEY);
         document.getElementById('prompt').value = '';
         document.getElementById('negativePrompt').value = '';
+        if (document.getElementById('promptAssistCheck')) {
+            document.getElementById('promptAssistCheck').checked = true;
+        }
         document.getElementById('promptTransNotice').style.display = 'none';
         document.getElementById('negTransNotice').style.display = 'none';
 
@@ -869,6 +888,7 @@
         applyParams({
             prompt: '',
             negative_prompt: '',
+            prompt_assist: true,
             width: defs.width || 512,
             height: defs.height || 512,
             steps: defs.steps || 20,

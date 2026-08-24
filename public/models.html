@@ -367,7 +367,7 @@
         <span style="font-size: 13px; font-weight: normal; color: #6b7280; margin-left: 8px;">🤖 LLM アシスト・翻訳モデル管理</span>
     </div>
     <div class="header-actions">
-        <a href="/generate.html" class="btn btn-primary">✨ 画像生成へ</a>
+        <a href="/generate.html?mode=new" class="btn btn-primary">✨ 画像生成へ</a>
         <a href="/menu.html" class="btn btn-secondary">一覧へ戻る</a>
     </div>
 </header>
@@ -581,12 +581,30 @@
 
                     if (m.dtype) badgesHtml += `<span class="badge">${m.dtype}</span>`;
 
-                    let actionBtnHtml = m.isLoaded ? 
-                        `<button disabled class="btn btn-secondary btn-sm" style="font-weight: 600; color: #059669;">✅ 有効・常駐中</button>` :
-                        `<button onclick="switchModel('${escapeHtml(m.id)}')" class="btn btn-primary btn-sm">${m.isCached ? '🔄 切り替えて常駐' : '⬇️ ダウンロード・常駐'}</button>`;
+                    let actionBtnHtml = '';
+                    if (m.isLoaded) {
+                        actionBtnHtml = `
+                            <button disabled class="btn btn-secondary btn-sm" style="font-weight: 600; color: #059669; cursor: default;">
+                                ✅ 選択・常駐中
+                            </button>
+                        `;
+                    } else if (m.isConfigured) {
+                        actionBtnHtml = `
+                            <button disabled class="btn btn-secondary btn-sm" style="font-weight: 600; color: #2563eb; cursor: default;">
+                                ✔ 選択中
+                            </button>
+                        `;
+                    } else {
+                        const btnLabel = m.isCached ? '🔄 このモデルを選択' : '⬇️ ダウンロードして選択';
+                        actionBtnHtml = `
+                            <button onclick="switchModel('${escapeHtml(m.id)}')" class="btn btn-primary btn-sm">
+                                ${btnLabel}
+                            </button>
+                        `;
+                    }
 
-                    let cacheDeleteBtnHtml = (m.isCached && !m.isLoaded) ? 
-                        `<button onclick="deleteCacheOnly('${escapeHtml(m.id)}', '${escapeHtml(m.cacheSize || '')}')" class="btn btn-warning btn-sm" title="キャッシュ削除">💾 キャッシュ削除</button>` : '';
+                    let cacheDeleteBtnHtml = (m.isCached && !m.isLoaded && !m.isConfigured) ? 
+                        `<button onclick="deleteCacheOnly('${escapeHtml(m.id)}', '${escapeHtml(m.cacheSize || '')}')" class="btn btn-warning btn-sm" title="設定は残したまま、ダウンロード済みファイルのみ削除してディスク容量を解放します">💾 キャッシュ削除</button>` : '';
 
                     let itemDeleteBtnHtml = (models.length > 1 && !m.isLoaded && !m.isConfigured) ? 
                         `<button onclick="deleteModelItem('${escapeHtml(m.id)}', ${m.isCached}, '${escapeHtml(m.cacheSize || '')}')" class="btn btn-outline-danger btn-sm" title="一覧から削除">🗑️ 項目削除</button>` : '';
