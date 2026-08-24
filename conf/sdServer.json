@@ -10,6 +10,53 @@
     "sampler_name": "euler_a",
     "seed": -1
   },
+  "llm": {
+    "activeModel": "onnx-community/Qwen3.5-0.8B-ONNX",
+    "models": [
+      {
+        "id": "onnx-community/Qwen3.5-0.8B-ONNX",
+        "name": "Qwen 3.5 0.8B (ONNX Q4)",
+        "description": "最新・軽量かつ高性能な Qwen 3.5 (0.8B) モデル（デフォルト）",
+        "dtype": "q4",
+        "task": "text-generation"
+      },
+      {
+        "id": "LiquidAI/LFM2.5-1.2B-JP-ONNX",
+        "name": "LFM2.5 1.2B JP (ONNX Q4)",
+        "description": "日本語に特化した軽量なモデル",
+        "dtype": "q4",
+        "task": "text-generation"
+      },
+      {
+        "id": "onnx-community/gemma-3-270m-it-ONNX",
+        "name": "Gemma 3 270M IT (ONNX Q4)",
+        "description": "超高速・軽量な Google Gemma 3 (270M) モデル",
+        "dtype": "q4",
+        "task": "text-generation"
+      },
+      {
+        "id": "onnx-community/gemma-3-1b-it-ONNX",
+        "name": "Gemma 3 1B IT (ONNX Q4)",
+        "description": "バランスの取れた Google Gemma 3 (1B) モデル",
+        "dtype": "q4",
+        "task": "text-generation"
+      },
+      {
+        "id": "onnx-community/Qwen2.5-0.5B-Instruct-ONNX",
+        "name": "Qwen 2.5 0.5B Instruct (ONNX Q4)",
+        "description": "多言語対応で超軽量な Qwen 2.5 (0.5B) モデル",
+        "dtype": "q4",
+        "task": "text-generation"
+      },
+      {
+        "id": "onnx-community/Qwen2.5-1.5B-Instruct-ONNX",
+        "name": "Qwen 2.5 1.5B Instruct (ONNX Q4)",
+        "description": "高い翻訳能力と表現力を持つ Qwen 2.5 (1.5B) モデル",
+        "dtype": "q4",
+        "task": "text-generation"
+      }
+    ]
+  },
   "options": {
     "resolutions": [
       { "width": 256, "height": 256, "label": "256 x 256 (超軽量)" },

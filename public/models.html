@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLMモデル設定 - sdServer</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f4f6f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background: #ffffff;
+            border-bottom: 1px solid #e1e4e8;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background 0.15s ease, border-color 0.15s ease;
+            border: 1px solid transparent;
+        }
+        .btn-primary {
+            background: #2563eb;
+            color: #ffffff;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: #1d4ed8;
+        }
+        .btn-secondary {
+            background: #ffffff;
+            color: #4b5563;
+            border-color: #d1d5db;
+        }
+        .btn-secondary:hover:not(:disabled) {
+            background: #f9fafb;
+            border-color: #9ca3af;
+        }
+        .btn-danger {
+            background: #fee2e2;
+            color: #dc2626;
+            border-color: #fecaca;
+        }
+        .btn-danger:hover:not(:disabled) {
+            background: #fecaca;
+        }
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 24px 16px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #f3f4f6;
+            padding-bottom: 12px;
+        }
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2937;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .model-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .model-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            background: #ffffff;
+            transition: all 0.15s ease;
+        }
+        .model-item.active {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        .model-info {
+            flex: 1;
+            margin-right: 16px;
+        }
+        .model-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .model-id {
+            font-size: 12px;
+            color: #6b7280;
+            font-family: monospace;
+            margin-top: 2px;
+        }
+        .model-desc {
+            font-size: 13px;
+            color: #4b5563;
+            margin-top: 4px;
+        }
+        .model-badges {
+            display: flex;
+            gap: 6px;
+            margin-top: 6px;
+        }
+        .badge {
+            font-size: 11px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+        .badge-active {
+            background: #2563eb;
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .badge-cached {
+            background: #dcfce7;
+            color: #15803d;
+            font-weight: 500;
+        }
+
+        .model-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+        input[type="text"], select, textarea {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+            font-family: inherit;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
+        }
+
+        .alert-box {
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .alert-success {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            color: #166534;
+        }
+        .alert-error {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #b91c1c;
+        }
+
+        /* オーバーレイ */
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(2px);
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: #ffffff;
+            user-select: none;
+        }
+        .overlay-card {
+            background: #ffffff;
+            color: #1f2937;
+            padding: 24px 32px;
+            border-radius: 12px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(37,99,235,0.2);
+            border-left-color: #2563eb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 14px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+<div id="loadingOverlay">
+    <div class="overlay-card">
+        <div class="spinner"></div>
+        <h4 id="overlayTitle" style="margin: 0 0 6px 0; font-size: 16px; font-weight: 600;">モデルをロード中...</h4>
+        <p id="overlayDesc" style="margin: 0; font-size: 13px; color: #6b7280;">初回はモデルファイルのダウンロードが行われます。<br>（数分かかる場合があります）</p>
+    </div>
+</div>
+
+<header>
+    <div class="header-title">
+        <a href="/menu.html" style="text-decoration: none; color: inherit;">🎨 sdServer</a>
+        <span style="font-size: 13px; font-weight: normal; color: #6b7280; margin-left: 8px;">LLM 翻訳モデル管理</span>
+    </div>
+    <div class="header-actions">
+        <a href="/generate.html" class="btn btn-primary">✨ 画像生成へ</a>
+        <a href="/menu.html" class="btn btn-secondary">一覧へ戻る</a>
+    </div>
+</header>
+
+<div class="container">
+    <div id="statusAlert" class="alert-box"></div>
+
+    <!-- 登録済みモデル一覧 -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">🤖 翻訳用 LLM モデル一覧</h3>
+            <button id="refreshBtn" class="btn btn-secondary btn-sm">🔄 更新</button>
+        </div>
+
+        <p style="font-size: 13px; color: #6b7280; margin-top: 0; margin-bottom: 16px;">
+            日本語プロンプトを英語に翻訳するローカルモデル（Transformers.js / ONNX）を選択・ロードします。<br>
+            ※ 「選択してロード」を押すと、メモリ上にモデルを常駐させます（未ダウンロードの場合は自動ダウンロードされます）。
+        </p>
+
+        <div id="modelList" class="model-list">
+            <!-- JSで動的レンダリング -->
+        </div>
+    </div>
+
+    <!-- 新規モデル追加フォーム -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">➕ 新規 HuggingFace ONNX モデルの追加</h3>
+        </div>
+
+        <form id="addModelForm">
+            <div class="form-group">
+                <label for="modelId">HuggingFace Model ID <span style="color: red;">*</span></label>
+                <input type="text" id="modelId" placeholder="例: onnx-community/Qwen2.5-0.5B-Instruct-ONNX" required />
+                <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">
+                    ※ Hugging Face 上の Transformers.js 互換 ONNX リポジトリ（例: `onnx-community/...` や `LiquidAI/...`）を指定してください。
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="modelName">モデル表示名</label>
+                <input type="text" id="modelName" placeholder="例: Qwen 2.5 0.5B Instruct" />
+            </div>
+
+            <div class="form-group">
+                <label for="modelDescription">説明・メモ</label>
+                <input type="text" id="modelDescription" placeholder="例: 超軽量・高速な多言語モデル" />
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <div class="form-group">
+                    <label for="modelDtype">量子化精度 (dtype)</label>
+                    <select id="modelDtype">
+                        <option value="q4" selected>q4 (推奨・超軽量量子化)</option>
+                        <option value="q8">q8 (高精度量子化)</option>
+                        <option value="fp16">fp16 (半精度浮動小数点)</option>
+                        <option value="fp32">fp32 (全精度)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="modelTask">タスク</label>
+                    <select id="modelTask">
+                        <option value="text-generation" selected>text-generation (テキスト生成)</option>
+                        <option value="translation">translation (翻訳パイプライン)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="margin-top: 16px;">
+                <button type="submit" id="addSubmitBtn" class="btn btn-primary">➕ モデルを一覧に登録</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const overlay = document.getElementById('loadingOverlay');
+    const overlayTitle = document.getElementById('overlayTitle');
+    const overlayDesc = document.getElementById('overlayDesc');
+    const statusAlert = document.getElementById('statusAlert');
+
+    function showAlert(msg, isError = false) {
+        statusAlert.className = `alert-box ${isError ? 'alert-error' : 'alert-success'}`;
+        statusAlert.textContent = msg;
+        statusAlert.style.display = 'block';
+        setTimeout(() => {
+            statusAlert.style.display = 'none';
+        }, 5000);
+    }
+
+    function showLoading(title, desc) {
+        overlayTitle.textContent = title || 'モデルをロード中...';
+        overlayDesc.innerHTML = desc || 'しばらくお待ちください。';
+        overlay.style.display = 'flex';
+    }
+
+    function hideLoading() {
+        overlay.style.display = 'none';
+    }
+
+    async function loadModels() {
+        const listEl = document.getElementById('modelList');
+        listEl.innerHTML = '<div style="text-align: center; color: #9ca3af; padding: 20px;">読み込み中...</div>';
+
+        try {
+            const res = await fetch('/api/models');
+            const json = await res.json();
+
+            if (!json.success || !json.data) {
+                listEl.innerHTML = '<div style="color: red;">モデル一覧の取得に失敗しました</div>';
+                return;
+            }
+
+            const { activeModel, models } = json.data;
+            listEl.innerHTML = '';
+
+            if (models.length === 0) {
+                listEl.innerHTML = '<div style="color: #9ca3af; padding: 10px;">登録されているモデルがありません。</div>';
+                return;
+            }
+
+            models.forEach(m => {
+                const item = document.createElement('div');
+                item.className = `model-item ${m.isActive ? 'active' : ''}`;
+
+                let badgesHtml = '';
+                if (m.isActive) {
+                    badgesHtml += `<span class="badge badge-active">✔ 現在使用中</span>`;
+                }
+                if (m.isCached) {
+                    badgesHtml += `<span class="badge badge-cached">💾 ダウンロード済</span>`;
+                } else {
+                    badgesHtml += `<span class="badge">☁️ 未ダウンロード</span>`;
+                }
+                if (m.dtype) {
+                    badgesHtml += `<span class="badge">${m.dtype}</span>`;
+                }
+
+                item.innerHTML = `
+                    <div class="model-info">
+                        <div class="model-name">
+                            ${escapeHtml(m.name || m.id)}
+                        </div>
+                        <div class="model-id">${escapeHtml(m.id)}</div>
+                        ${m.description ? `<div class="model-desc">${escapeHtml(m.description)}</div>` : ''}
+                        <div class="model-badges">${badgesHtml}</div>
+                    </div>
+                    <div class="model-actions">
+                        ${!m.isActive ? `
+                            <button onclick="switchModel('${escapeHtml(m.id)}')" class="btn btn-primary btn-sm">
+                                ${m.isCached ? '🔄 切り替える' : '⬇️ ロード・有効化'}
+                            </button>
+                        ` : `
+                            <button disabled class="btn btn-secondary btn-sm" style="font-weight: 600; color: #2563eb;">
+                                ✅ 常駐中
+                            </button>
+                        `}
+                        ${models.length > 1 && !m.isActive ? `
+                            <button onclick="deleteModel('${escapeHtml(m.id)}')" class="btn btn-danger btn-sm" title="一覧から削除">
+                                🗑️
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+
+                listEl.appendChild(item);
+            });
+
+        } catch (e) {
+            listEl.innerHTML = `<div style="color: red;">通信エラー: ${e.message}</div>`;
+        }
+    }
+
+    async function switchModel(modelId) {
+        showLoading(
+            'モデルをロード・常駐化しています...',
+            `<strong>${modelId}</strong> をロード中です。<br>未ダウンロードの場合は自動でダウンロードされます（初回は数分かかります）。`
+        );
+
+        try {
+            const res = await fetch('/api/models?action=switch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ modelId })
+            });
+            const json = await res.json();
+            hideLoading();
+
+            if (json.success) {
+                showAlert(`モデルを [${modelId}] に切り替えました！`);
+                loadModels();
+            } else {
+                showAlert(`切り替え失敗: ${json.error || 'エラーが発生しました'}`, true);
+            }
+        } catch (e) {
+            hideLoading();
+            showAlert(`通信エラー: ${e.message}`, true);
+        }
+    }
+
+    async function deleteModel(modelId) {
+        if (!confirm(`モデル [${modelId}] を一覧から削除しますか？`)) return;
+
+        try {
+            const res = await fetch('/api/models?action=delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ modelId })
+            });
+            const json = await res.json();
+            if (json.success) {
+                showAlert(`モデルを削除しました`);
+                loadModels();
+            } else {
+                showAlert(`削除失敗: ${json.error}`, true);
+            }
+        } catch (e) {
+            showAlert(`通信エラー: ${e.message}`, true);
+        }
+    }
+
+    document.getElementById('addModelForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const modelId = document.getElementById('modelId').value.trim();
+        const name = document.getElementById('modelName').value.trim();
+        const description = document.getElementById('modelDescription').value.trim();
+        const dtype = document.getElementById('modelDtype').value;
+        const task = document.getElementById('modelTask').value;
+
+        if (!modelId) return;
+
+        try {
+            const res = await fetch('/api/models?action=add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ modelId, name, description, dtype, task })
+            });
+            const json = await res.json();
+            if (json.success) {
+                showAlert(`モデル [${modelId}] を追加しました`);
+                document.getElementById('addModelForm').reset();
+                loadModels();
+            } else {
+                showAlert(`追加失敗: ${json.error}`, true);
+            }
+        } catch (e) {
+            showAlert(`通信エラー: ${e.message}`, true);
+        }
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+        loadModels();
+    });
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    loadModels();
+</script>
+
+</body>
+</html>
