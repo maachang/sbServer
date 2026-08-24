@@ -52,12 +52,19 @@
         .btn-primary:hover:not(:disabled) {
             background: #1d4ed8;
         }
+        .btn-success {
+            background: #16a34a;
+            color: #ffffff;
+        }
+        .btn-success:hover:not(:disabled) {
+            background: #15803d;
+        }
         .btn-secondary {
             background: #ffffff;
             color: #4b5563;
             border-color: #d1d5db;
         }
-        .btn-secondary:hover {
+        .btn-secondary:hover:not(:disabled) {
             background: #f9fafb;
             border-color: #9ca3af;
         }
@@ -65,7 +72,7 @@
             background: #dc2626;
             color: #ffffff;
         }
-        .btn-danger:hover {
+        .btn-danger:hover:not(:disabled) {
             background: #b91c1c;
         }
         .btn-xs {
@@ -79,9 +86,13 @@
             cursor: pointer;
             transition: all 0.15s ease;
         }
-        .btn-xs:hover {
+        .btn-xs:hover:not(:disabled) {
             background: #2563eb;
             color: #ffffff;
+        }
+        .btn-sm {
+            padding: 6px 14px;
+            font-size: 13px;
         }
         .btn:disabled, .btn-xs:disabled {
             opacity: 0.6;
@@ -242,6 +253,27 @@
             margin-bottom: 0;
         }
 
+        /* 保存ステータスバッジ */
+        .save-status-bar {
+            margin-top: 12px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .status-saved {
+            background: #dcfce7;
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+        }
+        .status-unsaved {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
+
         /* 全画面翻訳・ローディングオーバーレイ */
         #translationOverlay {
             position: fixed;
@@ -272,6 +304,39 @@
             width: 90%;
             text-align: center;
         }
+
+        /* 保存確認モーダル */
+        #saveConfirmModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(2px);
+            z-index: 9998;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .confirm-card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 440px;
+            width: 100%;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .confirm-preview-thumb {
+            max-width: 180px;
+            max-height: 180px;
+            border-radius: 6px;
+            margin: 12px auto;
+            display: block;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
@@ -281,7 +346,26 @@
     <div class="overlay-card">
         <div class="spinner spinner-sm"></div>
         <h4 style="margin: 0 0 6px 0; font-size: 16px; font-weight: 600;">プロンプトを翻訳中...</h4>
-        <p style="margin: 0; font-size: 13px; color: #6b7280;">LFM2.5 モデルで英語へ変換しています。<br>しばらくお待ちください。</p>
+        <p id="translationOverlayDesc" style="margin: 0; font-size: 13px; color: #6b7280;">ローカル LLM で英語へ変換しています。<br>しばらくお待ちください。</p>
+    </div>
+</div>
+
+<!-- 生成完了時の保存確認モーダル -->
+<div id="saveConfirmModal">
+    <div class="confirm-card">
+        <h3 style="margin: 0 0 8px 0; font-size: 18px; color: #1f2937;">🎉 画像が生成されました！</h3>
+        <p style="font-size: 14px; color: #4b5563; margin: 0 0 12px 0;">この画像を履歴ギャラリーに保存しますか？</p>
+        
+        <img id="confirmThumb" class="confirm-preview-thumb" src="" alt="生成プレビュー" />
+
+        <p style="font-size: 12px; color: #6b7280; margin: 0 0 20px 0;">
+            ※「保存しない」を選択すると、サーバーの画像ファイルおよびDB履歴は保存されません（現在の画面でダウンロードのみ可能です）。
+        </p>
+
+        <div style="display: flex; gap: 12px;">
+            <button type="button" id="confirmSaveBtn" class="btn btn-success" style="flex: 1;">💾 保存する</button>
+            <button type="button" id="confirmDiscardBtn" class="btn btn-secondary" style="flex: 1;">🗑️ 保存しない</button>
+        </div>
     </div>
 </div>
 
@@ -310,9 +394,12 @@
             <div class="form-group">
                 <div class="label-row">
                     <label for="prompt">プロンプト (Prompt / 日本語入力可) <span style="color:red">*</span></label>
-                    <button type="button" class="btn-xs" id="translatePromptBtn" title="入力した日本語の英語翻訳プレビューを確認します">🌐 翻訳プレビュー</button>
+                    <div style="display: flex; gap: 6px;">
+                        <button type="button" class="btn-xs" id="assistPromptBtn" title="入力した日本語から Stable Diffusion 向けにタグや構図をAI自動最適化・展開します" style="background: #fdf2f8; color: #db2777; border-color: #f472b6; font-weight: 600;">✨ AI最適化</button>
+                        <button type="button" class="btn-xs" id="translatePromptBtn" title="入力した日本語の英語翻訳プレビューを確認します">🌐 翻訳プレビュー</button>
+                    </div>
                 </div>
-                <textarea id="prompt" placeholder="日本語・英語どちらでも入力可能（例: 金髪の少女、美麗な背景、サイバーパンク / 1girl, cute, anime style）" required></textarea>
+                <textarea id="prompt" placeholder="日本語・英語どちらでも入力可能（例: 危険で恐ろしい魔剣を表現して / 桜並木を歩く女子高生 / 1girl, cute）" required></textarea>
                 <div id="promptTransNotice" style="font-size: 12px; color: #4b5563; margin-top: 4px; padding: 6px 10px; background: #f3f4f6; border-radius: 4px; display: none; word-break: break-all;"></div>
             </div>
 
@@ -323,6 +410,17 @@
                 </div>
                 <textarea id="negativePrompt" placeholder="日本語・英語どちらでも入力可能（例: 低品質、崩れた手足 / worst quality, low quality, blurry）"></textarea>
                 <div id="negTransNotice" style="font-size: 12px; color: #4b5563; margin-top: 4px; padding: 6px 10px; background: #f3f4f6; border-radius: 4px; display: none; word-break: break-all;"></div>
+            </div>
+
+            <!-- AIプロンプト自動最適化トグル -->
+            <div class="form-group" style="background: #fdf4ff; border: 1px solid #f0abfc; border-radius: 6px; padding: 10px 12px; margin-bottom: 16px;">
+                <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 0; font-size: 13px; font-weight: 600; color: #86198f;">
+                    <input type="checkbox" id="promptAssistCheck" checked style="margin-right: 8px; width: 16px; height: 16px; accent-color: #c026d3; cursor: pointer;">
+                    <span>✨ AIプロンプト自動アシスト (生成時に単体アイテム・構図・ネガティブを自動最適化)</span>
+                </label>
+                <div style="font-size: 11px; color: #a21caf; margin-left: 24px; margin-top: 2px;">
+                    ※ ONの場合、日本語入力から「アイテム単体」「構図タグ」「人物除外ネガティブ」等をSD向けに賢く補完して生成します。
+                </div>
             </div>
 
             <div class="form-group">
@@ -367,8 +465,9 @@
                 </div>
             </div>
 
-            <div style="margin-top: 24px; display: flex; gap: 12px;">
+            <div style="margin-top: 24px; display: flex; gap: 12px; align-items: center;">
                 <button type="submit" id="submitBtn" class="btn btn-primary" style="flex: 1;">✨ 画像を生成する</button>
+                <button type="button" id="resetBtn" class="btn btn-secondary" title="すべての入力値をサーバー既定値に戻します">🔄 既定値に戻す</button>
                 <button type="button" id="cancelBtn" class="btn btn-danger" style="display: none;">🛑 中断する</button>
             </div>
         </form>
@@ -382,7 +481,7 @@
             <div id="emptyPreview" class="placeholder-text">
                 <div style="font-size: 40px; margin-bottom: 8px;">🖼️</div>
                 <p>パラメータを設定して「画像を生成する」を押してください</p>
-                <p style="font-size: 12px; color: #9ca3af;">※ 日本語で入力した内容は日本語のまま保存・表示されます</p>
+                <p style="font-size: 12px; color: #9ca3af;">※ 生成完了時に保存するかどうかを選択できます</p>
             </div>
 
             <div id="loadingIndicator" style="display: none; text-align: center;">
@@ -393,6 +492,12 @@
             </div>
 
             <img id="resultImage" src="" alt="生成画像" style="display: none;" />
+        </div>
+
+        <!-- 保存状態インジケータ -->
+        <div id="saveStatusBar" class="save-status-bar" style="display: none;">
+            <span id="saveStatusText">💾 ギャラリーに保存済み</span>
+            <button type="button" id="manualSaveBtn" class="btn btn-success btn-xs" style="display: none;">💾 今すぐ保存する</button>
         </div>
 
         <div id="resultMeta" class="result-meta">
@@ -415,10 +520,25 @@
 
     let currentAbortController = null;
     let timerInterval = null;
+    let serverDefaults = null;
+    let activeModelDisplayName = 'ローカルLLM';
+    let lastGeneratedData = null; // 最新の生成結果キャッシュ
+
+    const STORAGE_KEY = 'sdServer_saved_params';
 
     const overlay = document.getElementById('translationOverlay');
+    const overlayDesc = document.getElementById('translationOverlayDesc');
+    const saveConfirmModal = document.getElementById('saveConfirmModal');
+    const confirmThumb = document.getElementById('confirmThumb');
 
-    function showOverlay() {
+    function showOverlay(titleText, descText) {
+        const titleEl = document.querySelector('#translationOverlay h4');
+        if (titleEl) {
+            titleEl.textContent = titleText || 'プロンプトを処理中...';
+        }
+        if (overlayDesc) {
+            overlayDesc.innerHTML = descText || `<strong>${escapeHtml(activeModelDisplayName)}</strong> で英語へ変換しています。<br>しばらくお待ちください。`;
+        }
         if (overlay) overlay.style.display = 'flex';
     }
 
@@ -426,10 +546,70 @@
         if (overlay) overlay.style.display = 'none';
     }
 
+    function showSaveModal(dataUrl) {
+        confirmThumb.src = dataUrl;
+        saveConfirmModal.style.display = 'flex';
+    }
+
+    function hideSaveModal() {
+        saveConfirmModal.style.display = 'none';
+    }
+
+    // パラメータを LocalStorage に保存
+    function saveParamsToStorage() {
+        if (editId) return;
+        try {
+            const params = {
+                prompt: document.getElementById('prompt').value,
+                negative_prompt: document.getElementById('negativePrompt').value,
+                width: parseInt(document.getElementById('width').value, 10),
+                height: parseInt(document.getElementById('height').value, 10),
+                steps: parseInt(document.getElementById('steps').value, 10),
+                cfg_scale: parseFloat(document.getElementById('cfgScale').value),
+                seed: parseInt(document.getElementById('seed').value, 10),
+                sampler_name: document.getElementById('sampler').value,
+                prompt_assist: document.getElementById('promptAssistCheck')?.checked ?? true
+            };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(params));
+        } catch (e) {
+            console.error('LocalStorage 保存エラー:', e);
+        }
+    }
+
+    function loadParamsFromStorage() {
+        try {
+            const json = localStorage.getItem(STORAGE_KEY);
+            if (!json) return null;
+            return JSON.parse(json);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function applyParams(p) {
+        if (!p) return;
+        if (p.prompt !== undefined) document.getElementById('prompt').value = p.prompt;
+        if (p.negative_prompt !== undefined) document.getElementById('negativePrompt').value = p.negative_prompt;
+        if (p.prompt_assist !== undefined && document.getElementById('promptAssistCheck')) {
+            document.getElementById('promptAssistCheck').checked = p.prompt_assist;
+        }
+        
+        const w = p.width || (serverDefaults && serverDefaults.width) || 512;
+        const h = p.height || (serverDefaults && serverDefaults.height) || 512;
+        document.getElementById('width').value = w;
+        document.getElementById('height').value = h;
+        syncResolutionPreset(w, h);
+
+        if (p.steps !== undefined) document.getElementById('steps').value = p.steps;
+        if (p.cfg_scale !== undefined) document.getElementById('cfgScale').value = p.cfg_scale;
+        if (p.seed !== undefined) document.getElementById('seed').value = p.seed;
+        if (p.sampler_name) document.getElementById('sampler').value = p.sampler_name;
+    }
+
     // 単語・文章翻訳共通関数
     async function translateText(text) {
         if (!text || !text.trim()) return '';
-        showOverlay();
+        showOverlay('プロンプトを翻訳中...', `<strong>${escapeHtml(activeModelDisplayName)}</strong> で英語へ直訳変換しています。<br>しばらくお待ちください。`);
         try {
             const res = await fetch('/api/translate', {
                 method: 'POST',
@@ -446,7 +626,73 @@
         }
     }
 
-    // 翻訳ボタンイベント設定
+    // AIプロンプト最適化ボタン
+    let lastOriginalPrompt = '';
+    let lastOriginalNeg = '';
+
+    document.getElementById('assistPromptBtn').addEventListener('click', async () => {
+        const promptEl = document.getElementById('prompt');
+        const negEl = document.getElementById('negativePrompt');
+        const notice = document.getElementById('promptTransNotice');
+        const btn = document.getElementById('assistPromptBtn');
+        const text = promptEl.value.trim();
+        if (!text) {
+            alert('プロンプトを入力してください');
+            return;
+        }
+
+        lastOriginalPrompt = text;
+        lastOriginalNeg = negEl.value;
+
+        btn.disabled = true;
+        showOverlay('✨ AIプロンプト最適化中...', `<strong>${escapeHtml(activeModelDisplayName)}</strong> で意図を解析し、Stable Diffusion 向けに構図・タグ・ネガティブを最適化しています...`);
+        try {
+            const res = await fetch('/api/assist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: text,
+                    negative_prompt: negEl.value.trim()
+                })
+            });
+            const json = await res.json();
+            if (json.success && json.prompt) {
+                promptEl.value = json.prompt;
+                if (json.negative_prompt) {
+                    negEl.value = json.negative_prompt;
+                }
+                saveParamsToStorage();
+
+                notice.style.display = 'block';
+                notice.style.background = '#fdf4ff';
+                notice.style.border = '1px solid #f0abfc';
+                notice.style.color = '#86198f';
+                notice.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>✨ <strong>AI最適化完了:</strong> 「${escapeHtml(text)}」からSD向けタグとネガティブを展開しました</span>
+                        <button type="button" id="undoAssistBtn" class="btn-xs" style="margin-left: 8px; background: #fff; color: #db2777; border-color: #f472b6;">↩️ 元に戻す</button>
+                    </div>
+                `;
+                document.getElementById('undoAssistBtn')?.addEventListener('click', () => {
+                    promptEl.value = lastOriginalPrompt;
+                    negEl.value = lastOriginalNeg;
+                    saveParamsToStorage();
+                    notice.style.display = 'none';
+                });
+            } else {
+                notice.style.display = 'block';
+                notice.textContent = 'AIプロンプト最適化に失敗しました: ' + (json.error || '不明なエラー');
+            }
+        } catch (e) {
+            notice.style.display = 'block';
+            notice.textContent = '通信エラーが発生しました: ' + e.message;
+        } finally {
+            btn.disabled = false;
+            hideOverlay();
+        }
+    });
+
+    // 翻訳プレビューボタンイベント設定
     document.getElementById('translatePromptBtn').addEventListener('click', async () => {
         const input = document.getElementById('prompt');
         const notice = document.getElementById('promptTransNotice');
@@ -458,6 +704,9 @@
         try {
             const translated = await translateText(text);
             notice.style.display = 'block';
+            notice.style.background = '#f3f4f6';
+            notice.style.border = 'none';
+            notice.style.color = '#4b5563';
             notice.innerHTML = `<strong>英訳プレビュー:</strong> ${escapeHtml(translated)}`;
         } catch (e) {
             notice.style.display = 'block';
@@ -503,7 +752,6 @@
         if (resSelect.querySelector(`option[value="${targetVal}"]`)) {
             resSelect.value = targetVal;
         } else {
-            // リストにないカスタム解像度の場合は選択解除またはcustom
             let customOpt = resSelect.querySelector('option[value="custom"]');
             if (!customOpt) {
                 customOpt = document.createElement('option');
@@ -524,6 +772,11 @@
 
             const opts = data.options || {};
             const defs = data.defaults || {};
+            serverDefaults = defs;
+
+            if (data.llm && data.llm.activeModelName) {
+                activeModelDisplayName = data.llm.activeModelName;
+            }
 
             // 解像度プリセット生成
             if (opts.resolutions && Array.isArray(opts.resolutions)) {
@@ -542,6 +795,7 @@
                     if (parts.length === 2 && parts[0] && parts[1]) {
                         document.getElementById('width').value = parts[0];
                         document.getElementById('height').value = parts[1];
+                        saveParamsToStorage();
                     }
                 });
             }
@@ -561,19 +815,6 @@
                 }
             }
 
-            // デフォルト値の反映
-            if (!editId) {
-                const initW = defs.width || 512;
-                const initH = defs.height || 512;
-                document.getElementById('width').value = initW;
-                document.getElementById('height').value = initH;
-                syncResolutionPreset(initW, initH);
-
-                if (defs.steps) document.getElementById('steps').value = defs.steps;
-                if (defs.cfg_scale) document.getElementById('cfgScale').value = defs.cfg_scale;
-                if (defs.seed !== undefined) document.getElementById('seed').value = defs.seed;
-            }
-
             if (opts.stepsRange) {
                 if (opts.stepsRange.min !== undefined) document.getElementById('steps').min = opts.stepsRange.min;
                 if (opts.stepsRange.max !== undefined) document.getElementById('steps').max = opts.stepsRange.max;
@@ -584,22 +825,57 @@
                 if (opts.cfgScaleRange.step !== undefined) document.getElementById('cfgScale').step = opts.cfgScaleRange.step;
             }
 
+            if (!editId) {
+                const saved = loadParamsFromStorage();
+                if (saved) {
+                    applyParams(saved);
+                } else {
+                    applyParams({
+                        width: defs.width || 512,
+                        height: defs.height || 512,
+                        steps: defs.steps || 20,
+                        cfg_scale: defs.cfg_scale || 7.0,
+                        seed: defs.seed !== undefined ? defs.seed : -1,
+                        sampler_name: defs.sampler_name || 'euler_a'
+                    });
+                }
+            }
+
         } catch (e) {
             console.error('設定ロードエラー:', e);
         }
     }
 
-    // 幅・高さの直接入力時もセレクトボックスと連動
-    document.getElementById('width').addEventListener('input', () => {
-        const w = parseInt(document.getElementById('width').value, 10);
-        const h = parseInt(document.getElementById('height').value, 10);
-        syncResolutionPreset(w, h);
+    // 各入力フィールドの変更を自動保存
+    ['prompt', 'negativePrompt', 'width', 'height', 'steps', 'cfgScale', 'sampler', 'seed'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('input', saveParamsToStorage);
+            el.addEventListener('change', saveParamsToStorage);
+        }
     });
 
-    document.getElementById('height').addEventListener('input', () => {
-        const w = parseInt(document.getElementById('width').value, 10);
-        const h = parseInt(document.getElementById('height').value, 10);
-        syncResolutionPreset(w, h);
+    // 「🔄 既定値に戻す」ボタン
+    document.getElementById('resetBtn').addEventListener('click', () => {
+        if (!confirm('すべての入力パラメータを初期の既定値に戻しますか？')) return;
+
+        localStorage.removeItem(STORAGE_KEY);
+        document.getElementById('prompt').value = '';
+        document.getElementById('negativePrompt').value = '';
+        document.getElementById('promptTransNotice').style.display = 'none';
+        document.getElementById('negTransNotice').style.display = 'none';
+
+        const defs = serverDefaults || {};
+        applyParams({
+            prompt: '',
+            negative_prompt: '',
+            width: defs.width || 512,
+            height: defs.height || 512,
+            steps: defs.steps || 20,
+            cfg_scale: defs.cfg_scale || 7.0,
+            seed: defs.seed !== undefined ? defs.seed : -1,
+            sampler_name: defs.sampler_name || 'euler_a'
+        });
     });
 
     async function initPage() {
@@ -615,27 +891,15 @@
                 const json = await res.json();
                 if (json.success && json.data) {
                     const item = json.data;
-                    document.getElementById('prompt').value = item.prompt || '';
-                    document.getElementById('negativePrompt').value = item.negative_prompt || '';
-                    
-                    const w = item.width || 512;
-                    const h = item.height || 512;
-                    document.getElementById('width').value = w;
-                    document.getElementById('height').value = h;
-                    syncResolutionPreset(w, h);
-
-                    document.getElementById('steps').value = item.steps || 20;
-                    document.getElementById('cfgScale').value = item.cfg_scale || 7.0;
-                    document.getElementById('seed').value = item.seed !== undefined ? item.seed : -1;
-                    if (item.sampler_name) {
-                        document.getElementById('sampler').value = item.sampler_name;
-                    }
+                    applyParams(item);
 
                     if (item.image_path) {
                         const img = document.getElementById('resultImage');
                         img.src = item.image_path;
                         img.style.display = 'block';
                         document.getElementById('emptyPreview').style.display = 'none';
+                        document.getElementById('downloadBtn').href = item.image_path;
+                        document.getElementById('resultActions').style.display = 'flex';
                     }
 
                     if (item.translated_prompt) {
@@ -664,9 +928,84 @@
         }
     });
 
+    // サーバーへ画像保存リクエスト
+    async function saveImageToServer() {
+        if (!lastGeneratedData || !lastGeneratedData.base64Data) return;
+
+        const meta = lastGeneratedData.meta || {};
+        const payload = {
+            base64Data: lastGeneratedData.base64Data,
+            prompt: meta.prompt,
+            negative_prompt: meta.negative_prompt,
+            translated_prompt: meta.translated_prompt,
+            translated_negative_prompt: meta.translated_negative_prompt,
+            width: meta.width,
+            height: meta.height,
+            steps: meta.steps,
+            cfg_scale: meta.cfg_scale,
+            seed: meta.seed,
+            sampler_name: meta.sampler_name,
+            parent_id: meta.parent_id,
+            generation_time_ms: meta.generation_time_ms
+        };
+
+        const statusBar = document.getElementById('saveStatusBar');
+        const statusText = document.getElementById('saveStatusText');
+        const manualSaveBtn = document.getElementById('manualSaveBtn');
+
+        try {
+            const res = await fetch('/api/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const json = await res.json();
+            if (json.success && json.data) {
+                lastGeneratedData.saved = true;
+                lastGeneratedData.data = json.data;
+                
+                statusBar.className = 'save-status-bar status-saved';
+                statusText.textContent = '💾 ギャラリーに保存されました';
+                manualSaveBtn.style.display = 'none';
+                statusBar.style.display = 'flex';
+                
+                document.getElementById('downloadBtn').href = json.data.image_path;
+            } else {
+                alert('保存に失敗しました: ' + (json.error || '不明なエラー'));
+            }
+        } catch (e) {
+            alert('保存通信エラー: ' + e.message);
+        }
+    }
+
+    // モーダルの「💾 保存する」ボタン
+    document.getElementById('confirmSaveBtn').addEventListener('click', async () => {
+        hideSaveModal();
+        await saveImageToServer();
+    });
+
+    // モーダルの「🗑️ 保存しない」ボタン
+    document.getElementById('confirmDiscardBtn').addEventListener('click', () => {
+        hideSaveModal();
+        const statusBar = document.getElementById('saveStatusBar');
+        const statusText = document.getElementById('saveStatusText');
+        const manualSaveBtn = document.getElementById('manualSaveBtn');
+
+        statusBar.className = 'save-status-bar status-unsaved';
+        statusText.textContent = '⚠️ 保存されていません（一時プレビュー表示中）';
+        manualSaveBtn.style.display = 'inline-flex';
+        statusBar.style.display = 'flex';
+    });
+
+    // 「今すぐ保存する」ボタン（後から保存したくなった場合）
+    document.getElementById('manualSaveBtn').addEventListener('click', async () => {
+        await saveImageToServer();
+    });
+
     // 生成フォーム送信
     document.getElementById('genForm').addEventListener('submit', async (e) => {
         e.preventDefault();
+        saveParamsToStorage();
 
         const submitBtn = document.getElementById('submitBtn');
         const cancelBtn = document.getElementById('cancelBtn');
@@ -682,11 +1021,13 @@
         const translatedPromptRow = document.getElementById('translatedPromptRow');
         const translatedPromptLabel = document.getElementById('translatedPromptLabel');
         const elapsedTimer = document.getElementById('elapsedTimer');
+        const saveStatusBar = document.getElementById('saveStatusBar');
 
         errorBox.style.display = 'none';
         errorBox.textContent = '';
         resultMeta.style.display = 'none';
         translatedPromptRow.style.display = 'none';
+        saveStatusBar.style.display = 'none';
         submitBtn.disabled = true;
         cancelBtn.style.display = 'inline-flex';
         emptyPreview.style.display = 'none';
@@ -704,16 +1045,20 @@
 
         currentAbortController = new AbortController();
 
+        const isAssist = document.getElementById('promptAssistCheck')?.checked ?? true;
         const payload = {
             prompt: document.getElementById('prompt').value.trim(),
             negative_prompt: document.getElementById('negativePrompt').value.trim(),
+            promptMode: isAssist ? 'assist' : 'direct',
+            promptAssist: isAssist,
             width: parseInt(document.getElementById('width').value, 10),
             height: parseInt(document.getElementById('height').value, 10),
             steps: parseInt(document.getElementById('steps').value, 10),
             cfg_scale: parseFloat(document.getElementById('cfgScale').value),
             seed: parseInt(document.getElementById('seed').value, 10),
             sampler_name: document.getElementById('sampler').value,
-            parent_id: document.getElementById('parentId').value ? parseInt(document.getElementById('parentId').value, 10) : null
+            parent_id: document.getElementById('parentId').value ? parseInt(document.getElementById('parentId').value, 10) : null,
+            autoSave: false
         };
 
         try {
@@ -744,11 +1089,16 @@
             }
 
             // 成功時
+            lastGeneratedData = {
+                ...data,
+                saved: false
+            };
+
             const finalSec = data.durationSec || ((Date.now() - startTimestamp) / 1000).toFixed(2);
             spentTimeLabel.textContent = `${finalSec} 秒`;
-            usedSeedLabel.textContent = data.data.seed !== undefined ? data.data.seed : '-';
+            usedSeedLabel.textContent = data.seed !== undefined ? data.seed : '-';
             
-            const trans = data.data.translated_prompt || (data.translated && data.translated.prompt);
+            const trans = data.translated && data.translated.prompt;
             if (trans) {
                 translatedPromptLabel.textContent = trans;
                 translatedPromptRow.style.display = 'block';
@@ -756,10 +1106,12 @@
 
             resultMeta.style.display = 'block';
 
-            resultImage.src = data.data.image_path;
+            resultImage.src = data.imageDataUrl;
             resultImage.style.display = 'block';
-            downloadBtn.href = data.data.image_path;
+            downloadBtn.href = data.imageDataUrl;
             resultActions.style.display = 'flex';
+
+            showSaveModal(data.imageDataUrl);
 
         } catch (e) {
             clearInterval(timerInterval);

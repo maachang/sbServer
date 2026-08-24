@@ -1,9 +1,10 @@
 /**
  * ローカル LLM モデル管理 API
- * GET /api/models          : モデル一覧・現在の状態取得
- * POST /api/models/switch  : アクティブモデルの切り替え / ロード
- * POST /api/models/add     : 新規モデルの追加
- * POST /api/models/delete  : モデルの削除
+ * GET /api/models                 : モデル一覧・現在の状態取得
+ * GET /api/models?action=progress : ダウンロード/ロード進捗のリアルタイム取得
+ * POST /api/models/switch         : アクティブモデルの切り替え / ロード
+ * POST /api/models/add            : 新規モデルの追加
+ * POST /api/models/delete         : モデルの削除
  */
 exports.handler = async function() {
     const translator = $loadLib('translator.js');
@@ -13,6 +14,14 @@ exports.handler = async function() {
 
     try {
         if (method === 'GET') {
+            if (action === 'progress') {
+                const progress = translator.getLoadProgress();
+                return {
+                    success: true,
+                    data: progress
+                };
+            }
+
             const status = translator.getModelsStatus();
             return {
                 success: true,
@@ -57,18 +66,35 @@ exports.handler = async function() {
                 };
             }
 
-            // モデル削除
-            if (action === 'delete' || body.action === 'delete') {
+            // キャッシュファイルのみ削除 (ディスク容量解放)
+            if (action === 'deleteCache' || body.action === 'deleteCache') {
                 const modelId = body.modelId;
                 if (!modelId) {
                     $response.status(400);
                     return { success: false, error: 'modelId が指定されていません' };
                 }
-                const result = translator.deleteModel(modelId);
+                translator.deleteModelCache(modelId);
+                const result = translator.getModelsStatus();
                 return {
                     success: true,
                     data: result,
-                    message: `モデル [${modelId}] を削除しました`
+                    message: `モデル [${modelId}] のダウンロード済みキャッシュを削除しました`
+                };
+            }
+
+            // モデル削除（設定から削除、オプションでキャッシュも削除）
+            if (action === 'delete' || body.action === 'delete') {
+                const modelId = body.modelId;
+                const deleteCache = body.deleteCache === true;
+                if (!modelId) {
+                    $response.status(400);
+                    return { success: false, error: 'modelId が指定されていません' };
+                }
+                const result = translator.deleteModel(modelId, deleteCache);
+                return {
+                    success: true,
+                    data: result,
+                    message: `モデル [${modelId}] を削除しました${deleteCache ? '（キャッシュも削除）' : ''}`
                 };
             }
         }

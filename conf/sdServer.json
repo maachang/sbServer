@@ -6,31 +6,24 @@
     "width": 512,
     "height": 512,
     "steps": 20,
-    "cfg_scale": 7.0,
+    "cfg_scale": 7,
     "sampler_name": "euler_a",
     "seed": -1
   },
   "llm": {
-    "activeModel": "onnx-community/Qwen3.5-0.8B-ONNX",
+    "activeModel": "onnx-community/Qwen2.5-1.5B-Instruct",
     "models": [
       {
-        "id": "onnx-community/Qwen3.5-0.8B-ONNX",
-        "name": "Qwen 3.5 0.8B (ONNX Q4)",
-        "description": "最新・軽量かつ高性能な Qwen 3.5 (0.8B) モデル（デフォルト）",
+        "id": "onnx-community/Qwen2.5-1.5B-Instruct",
+        "name": "Qwen 2.5 1.5B Instruct (ONNX Q4)",
+        "description": "高精度な翻訳とプロンプト最適化・ネガティブ補完を両立した推奨モデル（デフォルト）",
         "dtype": "q4",
         "task": "text-generation"
       },
       {
-        "id": "LiquidAI/LFM2.5-1.2B-JP-ONNX",
-        "name": "LFM2.5 1.2B JP (ONNX Q4)",
-        "description": "日本語に特化した軽量なモデル",
-        "dtype": "q4",
-        "task": "text-generation"
-      },
-      {
-        "id": "onnx-community/gemma-3-270m-it-ONNX",
-        "name": "Gemma 3 270M IT (ONNX Q4)",
-        "description": "超高速・軽量な Google Gemma 3 (270M) モデル",
+        "id": "onnx-community/Qwen2.5-3B-Instruct",
+        "name": "Qwen 2.5 3B Instruct (ONNX Q4)",
+        "description": "より高度な表現力と複雑なプロンプト展開に対応した高品質モデル",
         "dtype": "q4",
         "task": "text-generation"
       },
@@ -42,16 +35,9 @@
         "task": "text-generation"
       },
       {
-        "id": "onnx-community/Qwen2.5-0.5B-Instruct-ONNX",
-        "name": "Qwen 2.5 0.5B Instruct (ONNX Q4)",
-        "description": "多言語対応で超軽量な Qwen 2.5 (0.5B) モデル",
-        "dtype": "q4",
-        "task": "text-generation"
-      },
-      {
-        "id": "onnx-community/Qwen2.5-1.5B-Instruct-ONNX",
-        "name": "Qwen 2.5 1.5B Instruct (ONNX Q4)",
-        "description": "高い翻訳能力と表現力を持つ Qwen 2.5 (1.5B) モデル",
+        "id": "LiquidAI/LFM2.5-1.2B-JP-ONNX",
+        "name": "LFM2.5 1.2B JP (ONNX Q4)",
+        "description": "日本語ニュアンスの解釈に優れた軽量モデル",
         "dtype": "q4",
         "task": "text-generation"
       }
@@ -59,22 +45,71 @@
   },
   "options": {
     "resolutions": [
-      { "width": 256, "height": 256, "label": "256 x 256 (超軽量)" },
-      { "width": 512, "height": 512, "label": "512 x 512 (標準・正方形)" },
-      { "width": 512, "height": 768, "label": "512 x 768 (縦長)" },
-      { "width": 768, "height": 512, "label": "768 x 512 (横長)" },
-      { "width": 768, "height": 768, "label": "768 x 768 (高解像度)" },
-      { "width": 1024, "height": 1024, "label": "1024 x 1024 (SDXL等)" }
+      {
+        "width": 256,
+        "height": 256,
+        "label": "256 x 256 (超軽量)"
+      },
+      {
+        "width": 512,
+        "height": 512,
+        "label": "512 x 512 (標準・正方形)"
+      },
+      {
+        "width": 512,
+        "height": 768,
+        "label": "512 x 768 (縦長)"
+      },
+      {
+        "width": 768,
+        "height": 512,
+        "label": "768 x 512 (横長)"
+      },
+      {
+        "width": 768,
+        "height": 768,
+        "label": "768 x 768 (高解像度)"
+      },
+      {
+        "width": 1024,
+        "height": 1024,
+        "label": "1024 x 1024 (SDXL等)"
+      }
     ],
     "samplers": [
-      { "value": "euler_a", "label": "Euler a (Euler Ancestral)" },
-      { "value": "euler", "label": "Euler" },
-      { "value": "dpm++_2m", "label": "DPM++ 2M" },
-      { "value": "dpm++_2m_karras", "label": "DPM++ 2M Karras" },
-      { "value": "dpm++_sde", "label": "DPM++ SDE" },
-      { "value": "ddim", "label": "DDIM" }
+      {
+        "value": "euler_a",
+        "label": "Euler a (Euler Ancestral)"
+      },
+      {
+        "value": "euler",
+        "label": "Euler"
+      },
+      {
+        "value": "dpm++_2m",
+        "label": "DPM++ 2M"
+      },
+      {
+        "value": "dpm++_2m_karras",
+        "label": "DPM++ 2M Karras"
+      },
+      {
+        "value": "dpm++_sde",
+        "label": "DPM++ SDE"
+      },
+      {
+        "value": "ddim",
+        "label": "DDIM"
+      }
     ],
-    "stepsRange": { "min": 1, "max": 150 },
-    "cfgScaleRange": { "min": 1.0, "max": 30.0, "step": 0.5 }
+    "stepsRange": {
+      "min": 1,
+      "max": 150
+    },
+    "cfgScaleRange": {
+      "min": 1,
+      "max": 30,
+      "step": 0.5
+    }
   }
 }
