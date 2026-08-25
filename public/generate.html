@@ -567,6 +567,18 @@
 
     function showSaveModal(dataUrl) {
         confirmThumb.src = dataUrl;
+        const modalTitle = document.querySelector('#saveConfirmModal h3');
+        const modalDesc = document.querySelector('#saveConfirmModal p');
+        const saveBtn = document.getElementById('confirmSaveBtn');
+        if (editId) {
+            if (modalTitle) modalTitle.textContent = '🎉 画像が再生成されました！';
+            if (modalDesc) modalDesc.textContent = `既存の元画像（#${editId}）をこの画像で上書き保存しますか？`;
+            if (saveBtn) saveBtn.textContent = '💾 上書き保存する';
+        } else {
+            if (modalTitle) modalTitle.textContent = '🎉 画像が生成されました！';
+            if (modalDesc) modalDesc.textContent = 'この画像を履歴ギャラリーに保存しますか？';
+            if (saveBtn) saveBtn.textContent = '💾 保存する';
+        }
         saveConfirmModal.style.display = 'flex';
     }
 
@@ -1046,6 +1058,7 @@
 
         const meta = lastGeneratedData.meta || {};
         const payload = {
+            id: editId ? parseInt(editId, 10) : null,
             base64Data: lastGeneratedData.base64Data,
             prompt: meta.prompt,
             negative_prompt: meta.negative_prompt,
@@ -1077,7 +1090,7 @@
                 lastGeneratedData.data = json.data;
                 
                 statusBar.className = 'save-status-bar status-saved';
-                statusText.textContent = '💾 ギャラリーに保存されました';
+                statusText.textContent = editId ? `💾 元画像（#${editId}）を上書き保存しました` : '💾 ギャラリーに保存されました';
                 manualSaveBtn.style.display = 'none';
                 statusBar.style.display = 'flex';
                 
