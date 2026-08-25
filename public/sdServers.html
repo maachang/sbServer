@@ -422,6 +422,18 @@
             </div>
 
             <div class="form-group">
+                <label for="serverModelType">モデル系統 (Model Architecture) <span style="color: red;">*</span></label>
+                <select id="serverModelType" required>
+                    <option value="sd15">🏷️ SD 1.5系 (タグ羅列型 / AnyLoRA・Realistic・Counterfeit等)</option>
+                    <option value="sdxl">⚡ SDXL系 (ハイブリッド型 / Pony・Animagine・SDXL等)</option>
+                    <option value="natural">🧠 自然言語型 (DiT / FLUX / Qwen-Image / SD3.5等)</option>
+                </select>
+                <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">
+                    ※ AIアシスタントがこのモデル系統に合わせて最適なプロンプト形式（Danbooruタグ型・自然英文文章型など）を自動生成します。
+                </div>
+            </div>
+
+            <div class="form-group">
                 <label for="serverId">サーバー識別ID <span style="color: red;">*</span></label>
                 <input type="text" id="serverId" placeholder="例: server-1 / anylora-main" required pattern="[a-zA-Z0-9_\-]+" />
                 <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">※ 半角英数字、アンダースコア、ハイフンのみ</div>
@@ -581,6 +593,14 @@
                 defaultsHtml = `<div style="font-size: 11px; color: #94a3b8; margin-bottom: 10px;">⚙️ 固有設定なし（共通デフォルトを適用）</div>`;
             }
 
+            const typeBadgeMap = {
+                'sd15': '<span style="background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">🏷️ SD 1.5系</span>',
+                'sdxl': '<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">⚡ SDXL系</span>',
+                'natural': '<span style="background: #ede9fe; color: #5b21b6; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">🧠 自然言語型</span>'
+            };
+            const mType = srv.modelType || 'sd15';
+            const mBadge = typeBadgeMap[mType] || `<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 11px;">🏷️ ${escapeHtml(mType)}</span>`;
+
             const card = document.createElement('div');
             card.className = `server-item ${isActive ? 'is-active' : ''}`;
             card.innerHTML = `
@@ -588,6 +608,7 @@
                     <div class="server-header">
                         <div class="server-name">
                             <span>${escapeHtml(srv.name || srv.id)}</span>
+                            ${mBadge}
                             ${isActive ? '<span class="badge-active">デフォルト</span>' : ''}
                         </div>
                         <span class="badge-endpoint">${escapeHtml(srv.endpoint || '/sdapi/v1/txt2img')}</span>
@@ -763,6 +784,7 @@
         document.getElementById('serverId').readOnly = false;
         form.reset();
         document.getElementById('serverId').value = `server-${Date.now().toString().slice(-4)}`;
+        document.getElementById('serverModelType').value = 'sd15';
         document.getElementById('serverBaseUrl').value = 'http://192.168.0.233:8080';
         document.getElementById('serverTimeoutSec').value = '600';
         endpointSelect.value = '/sdapi/v1/txt2img';
@@ -787,6 +809,7 @@
         document.getElementById('serverId').value = srv.id;
         document.getElementById('serverId').readOnly = true;
         document.getElementById('serverName').value = srv.name || '';
+        document.getElementById('serverModelType').value = srv.modelType || 'sd15';
         document.getElementById('serverBaseUrl').value = srv.baseUrl || '';
         document.getElementById('serverTimeoutSec').value = Math.round((srv.timeoutMs || 600000) / 1000);
         document.getElementById('serverDesc').value = srv.description || '';
@@ -863,6 +886,7 @@
         e.preventDefault();
         const id = document.getElementById('serverId').value.trim();
         const name = document.getElementById('serverName').value.trim();
+        const modelType = document.getElementById('serverModelType').value.trim() || 'sd15';
         const baseUrl = document.getElementById('serverBaseUrl').value.trim();
         const timeoutSec = parseInt(document.getElementById('serverTimeoutSec').value, 10) || 600;
         const description = document.getElementById('serverDesc').value.trim();
@@ -893,6 +917,7 @@
                     action: 'saveServer',
                     id,
                     name,
+                    modelType,
                     baseUrl,
                     endpoint,
                     timeoutMs: timeoutSec * 1000,

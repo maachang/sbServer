@@ -5,22 +5,36 @@
  */
 exports.handler = async function() {
     const translator = $loadLib('translator.js');
-    const body = $request.body || {};
+    const sdClient = $loadLib('sdClient.js');
+
+    let body = $request.body || {};
+    if (typeof body === 'string') {
+        try { body = JSON.parse(body); } catch (e) { body = {}; }
+    }
+
     const prompt = body.prompt || '';
     const negativePrompt = body.negative_prompt || '';
+
+    let modelType = body.modelType;
+    if (!modelType && (body.serverId || body.server_id)) {
+        const srv = sdClient.resolveServer(body.serverId || body.server_id);
+        modelType = srv?.modelType || 'sd15';
+    }
+    if (!modelType) modelType = 'sd15';
 
     if (!prompt || !prompt.trim()) {
         return {
             success: true,
             prompt: '',
             negative_prompt: negativePrompt,
-            original_prompt: ''
+            original_prompt: '',
+            modelType
         };
     }
 
     try {
         if (translator && translator.assistPrompt) {
-            const result = await translator.assistPrompt(prompt, negativePrompt);
+            const result = await translator.assistPrompt(prompt, negativePrompt, modelType);
             return {
                 success: true,
                 ...result

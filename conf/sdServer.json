@@ -4,6 +4,7 @@
     {
       "id": "server-1",
       "name": "[低速]画像汎用",
+      "modelType": "natural",
       "baseUrl": "http://192.168.0.233:8080",
       "endpoint": "/sdapi/v1/txt2img",
       "timeoutMs": 600000,
@@ -15,6 +16,7 @@
     {
       "id": "server-2",
       "name": "[高速]アニメ調",
+      "modelType": "sd15",
       "baseUrl": "http://192.168.0.229:8080",
       "endpoint": "/sdapi/v1/txt2img",
       "timeoutMs": 600000,
@@ -33,6 +35,26 @@
     "seed": -1
   },
   "options": {
+    "modelTypes": [
+      {
+        "value": "sd15",
+        "label": "🏷️ SD 1.5系 (タグ羅列型 / AnyLoRA・Realistic等)",
+        "badge": "SD 1.5系",
+        "desc": "Danbooruタグやカンマ区切りの単語で指示。軽量・高速。"
+      },
+      {
+        "value": "sdxl",
+        "label": "⚡ SDXL系 (ハイブリッド型 / Pony・Animagine等)",
+        "badge": "SDXL系",
+        "desc": "品質タグ(score_9等)とシチュエーション文の複合指示。高解像度。"
+      },
+      {
+        "value": "natural",
+        "label": "🧠 自然言語型 (DiT / FLUX / Qwen-Image / SD3等)",
+        "badge": "自然言語型",
+        "desc": "英文の長文・情景描写文で指示。文字入れや複雑構図に対応。"
+      }
+    ],
     "resolutions": [
       {
         "width": 256,

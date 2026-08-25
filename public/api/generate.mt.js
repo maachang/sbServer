@@ -141,15 +141,14 @@ exports.handler = async function() {
             let translatedPrompt = '';
             let translatedNegativePrompt = '';
             let effectivePrompt = userPrompt;
-            let effectiveNegativePrompt = userNegativePrompt;
-
+            const modelType = targetServer ? (targetServer.modelType || 'sd15') : 'sd15';
             if (promptMode === 'assist' && translator && translator.assistPrompt) {
-                const assistResult = await translator.assistPrompt(userPrompt, userNegativePrompt);
+                const assistResult = await translator.assistPrompt(userPrompt, userNegativePrompt, modelType);
                 if (assistResult.prompt) {
                     translatedPrompt = assistResult.prompt;
                     effectivePrompt = assistResult.prompt;
                 }
-                if (assistResult.negative_prompt) {
+                if (assistResult.negative_prompt !== undefined) {
                     translatedNegativePrompt = assistResult.negative_prompt;
                     effectiveNegativePrompt = assistResult.negative_prompt;
                 }

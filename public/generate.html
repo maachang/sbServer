@@ -689,14 +689,16 @@
         }
 
         btn.disabled = true;
-        showOverlay('✨ AIプロンプト最適化中...', 'プロンプトの意図を解析し、Stable Diffusion 向けに構図・タグ・ネガティブを最適化しています...<br>しばらくお待ちください。');
+        const selectedServerId = document.getElementById('sdServerSelect')?.value || '';
+        showOverlay('✨ AIプロンプト最適化中...', '選択中サーバーのモデル系統に合わせて構図・プロンプト・ネガティブを最適化しています...<br>しばらくお待ちください。');
         try {
             const res = await fetch('/api/assist', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     prompt: text,
-                    negative_prompt: negEl.value.trim()
+                    negative_prompt: negEl.value.trim(),
+                    serverId: selectedServerId
                 })
             });
             const json = await res.json();
@@ -704,13 +706,20 @@
                 const optimizedPrompt = json.prompt;
                 const optimizedNeg = json.negative_prompt || '';
 
+                const typeTitleMap = {
+                    'natural': '🧠 自然言語型モデル向け (文章・情景描写スタイル)',
+                    'sdxl': '⚡ SDXL系モデル向け (クオリティスコア・情景複合スタイル)',
+                    'sd15': '🏷️ SD 1.5系モデル向け (Danbooruタグ羅列スタイル)'
+                };
+                const modelTypeLabel = typeTitleMap[json.modelType] || '✨ AI最適化プレビュー';
+
                 notice.style.display = 'block';
                 notice.style.background = '#fdf4ff';
                 notice.style.border = '1px solid #f0abfc';
                 notice.style.color = '#86198f';
                 notice.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <span style="font-weight: 700; font-size: 13px;">✨ AI最適化プレビュー</span>
+                        <span style="font-weight: 700; font-size: 13px;">✨ AI最適化プレビュー <span style="font-size: 11px; font-weight: 600; background: #fae8ff; color: #86198f; padding: 2px 6px; border-radius: 4px; border: 1px solid #e879f9; margin-left: 6px;">${modelTypeLabel}</span></span>
                         <button type="button" id="closeAssistNoticeBtn" class="btn-xs" style="background: transparent; border: none; cursor: pointer; color: #86198f; font-size: 14px; padding: 0 4px;" title="閉じる">✕</button>
                     </div>
                     <div style="margin-bottom: 6px;">
@@ -904,12 +913,21 @@
             currentServers = data.servers || [];
 
             if (currentServers.length > 0) {
+                const typeLabels = {
+                    'sd15': '🏷️ SD 1.5系',
+                    'sdxl': '⚡ SDXL系',
+                    'natural': '🧠 自然言語型'
+                };
                 sdServerSelect.innerHTML = '';
                 currentServers.forEach(s => {
                     const opt = document.createElement('option');
                     opt.value = s.id;
-                    opt.textContent = `${s.name || s.id} (${s.baseUrl}${s.endpoint})`;
+                    const mType = s.modelType || 'sd15';
+                    const typeLabel = typeLabels[mType] || `🏷️ ${mType}`;
+                    opt.textContent = `${s.name || s.id} [${typeLabel}] (${s.baseUrl}${s.endpoint})`;
                     opt.dataset.desc = s.description || '';
+                    opt.dataset.modelType = mType;
+                    opt.dataset.typeLabel = typeLabel;
                     opt.dataset.url = `${s.baseUrl}${s.endpoint}`;
                     sdServerSelect.appendChild(opt);
                 });
@@ -921,7 +939,13 @@
                         const srv = currentServers.find(s => s.id === srvId);
                         sdServerEndpointBadge.textContent = sel.dataset.url || '';
                         
-                        let desc = sel.dataset.desc || '';
+                        let desc = '';
+                        if (sel.dataset.typeLabel) {
+                            desc += `【${sel.dataset.typeLabel}】 `;
+                        }
+                        if (sel.dataset.desc) {
+                            desc += sel.dataset.desc;
+                        }
                         if (srv && srv.defaults && Object.keys(srv.defaults).length > 0) {
                             const d = srv.defaults;
                             const dList = [];
