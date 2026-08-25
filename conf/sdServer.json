@@ -3,13 +3,13 @@
   "servers": [
     {
       "id": "server-1",
-      "name": "画像汎用",
+      "name": "[低速]画像汎用",
       "baseUrl": "http://192.168.0.233:8080",
       "endpoint": "/sdapi/v1/txt2img",
       "timeoutMs": 600000,
       "description": "画像汎用: qwen-image 利用なので「速度が遅い」が画像は汎用的に出力できる。",
       "defaults": {
-        "steps": 1
+        "cfg_scale": 1
       }
     },
     {
@@ -18,10 +18,7 @@
       "baseUrl": "http://192.168.0.229:8080",
       "endpoint": "/sdapi/v1/txt2img",
       "timeoutMs": 600000,
-      "description": "アニメ画像など",
-      "defaults": {
-        "sampler_name": "euler_a"
-      }
+      "description": "アニメ画像など"
     }
   ],
   "baseUrl": "http://192.168.0.233:8080",

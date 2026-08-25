@@ -533,12 +533,15 @@
     const editId = urlParams.get('id');
 
     let currentAbortController = null;
+    let currentTaskId = null;
+    let pollInterval = null;
     let timerInterval = null;
     let serverDefaults = null;
     let currentServers = [];
     let lastGeneratedData = null; // 最新の生成結果キャッシュ
 
-    const STORAGE_KEY = 'sdServer_saved_params';
+    // 既存の古い一次保存データがあればクリア
+    try { localStorage.removeItem('sdServer_saved_params'); } catch (e) {}
 
     const overlay = document.getElementById('translationOverlay');
     const overlayDesc = document.getElementById('translationOverlayDesc');
@@ -599,45 +602,37 @@
         saveConfirmModal.style.display = 'none';
     }
 
-    // パラメータを LocalStorage に保存
-    function saveParamsToStorage() {
-        if (editId) return;
-        try {
-            const params = {
-                server_id: document.getElementById('sdServerSelect')?.value,
-                prompt: document.getElementById('prompt').value,
-                negative_prompt: document.getElementById('negativePrompt').value,
-                width: parseInt(document.getElementById('width').value, 10),
-                height: parseInt(document.getElementById('height').value, 10),
-                steps: parseInt(document.getElementById('steps').value, 10),
-                cfg_scale: parseFloat(document.getElementById('cfgScale').value),
-                seed: parseInt(document.getElementById('seed').value, 10),
-                sampler_name: document.getElementById('sampler').value,
-                prompt_assist: document.getElementById('promptAssistCheck')?.checked ?? true
-            };
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(params));
-        } catch (e) {
-            console.error('LocalStorage 保存エラー:', e);
-        }
-    }
+    // 選択中サーバーのdefaults（または共通デフォルト）を適用
+    function applyDefaultParams() {
+        const currentServerId = document.getElementById('sdServerSelect')?.value;
+        const currentServer = currentServers.find(s => s.id === currentServerId) || currentServers[0];
+        const srvDefs = currentServer?.defaults || {};
+        const defs = serverDefaults || {};
 
-    function loadParamsFromStorage() {
-        try {
-            const json = localStorage.getItem(STORAGE_KEY);
-            if (!json) return null;
-            return JSON.parse(json);
-        } catch (e) {
-            return null;
+        document.getElementById('prompt').value = '';
+        document.getElementById('negativePrompt').value = '';
+        if (document.getElementById('promptAssistCheck')) {
+            document.getElementById('promptAssistCheck').checked = true;
+        }
+        document.getElementById('promptTransNotice').style.display = 'none';
+        document.getElementById('negTransNotice').style.display = 'none';
+
+        const targetW = srvDefs.width || defs.width || 512;
+        const targetH = srvDefs.height || defs.height || 512;
+        document.getElementById('width').value = targetW;
+        document.getElementById('height').value = targetH;
+        syncResolutionPreset(targetW, targetH);
+
+        document.getElementById('steps').value = srvDefs.steps || defs.steps || 20;
+        document.getElementById('cfgScale').value = srvDefs.cfg_scale !== undefined ? srvDefs.cfg_scale : (defs.cfg_scale !== undefined ? defs.cfg_scale : 7.0);
+        document.getElementById('seed').value = srvDefs.seed !== undefined ? srvDefs.seed : (defs.seed !== undefined ? defs.seed : -1);
+        if (document.getElementById('sampler')) {
+            document.getElementById('sampler').value = srvDefs.sampler_name || defs.sampler_name || 'euler_a';
         }
     }
 
     function applyParams(p) {
         if (!p) return;
-        if (p.server_id && document.getElementById('sdServerSelect')) {
-            document.getElementById('sdServerSelect').value = p.server_id;
-            const event = new Event('change');
-            document.getElementById('sdServerSelect').dispatchEvent(event);
-        }
         if (p.prompt !== undefined) document.getElementById('prompt').value = p.prompt;
         if (p.negative_prompt !== undefined) document.getElementById('negativePrompt').value = p.negative_prompt;
         if (p.prompt_assist !== undefined && document.getElementById('promptAssistCheck')) {
@@ -653,7 +648,9 @@
         if (p.steps !== undefined) document.getElementById('steps').value = p.steps;
         if (p.cfg_scale !== undefined) document.getElementById('cfgScale').value = p.cfg_scale;
         if (p.seed !== undefined) document.getElementById('seed').value = p.seed;
-        if (p.sampler_name) document.getElementById('sampler').value = p.sampler_name;
+        if (p.sampler_name && document.getElementById('sampler')) {
+            document.getElementById('sampler').value = p.sampler_name;
+        }
     }
 
     // 単語・文章翻訳共通関数
@@ -747,7 +744,6 @@
                     if (optimizedNeg) {
                         negEl.value = optimizedNeg;
                     }
-                    saveParamsToStorage();
 
                     notice.innerHTML = `
                         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -758,7 +754,6 @@
                     document.getElementById('undoAssistBtn')?.addEventListener('click', () => {
                         promptEl.value = lastOriginalPrompt;
                         negEl.value = lastOriginalNeg;
-                        saveParamsToStorage();
                         notice.style.display = 'none';
                     });
                 });
@@ -809,7 +804,6 @@
 
             document.getElementById('applyTransPromptBtn')?.addEventListener('click', () => {
                 input.value = translated;
-                saveParamsToStorage();
                 notice.style.display = 'none';
             });
         } catch (e) {
@@ -853,7 +847,6 @@
 
             document.getElementById('applyTransNegBtn')?.addEventListener('click', () => {
                 input.value = translated;
-                saveParamsToStorage();
                 notice.style.display = 'none';
             });
         } catch (e) {
@@ -942,19 +935,7 @@
                         localStorage.setItem('sd_server_id', sel.value);
 
                         if (autoApplyDefaults && srv && !editId) {
-                            const globalDefs = serverDefaults || {};
-                            const srvDefs = srv.defaults || {};
-                            const w = srvDefs.width || globalDefs.width || 512;
-                            const h = srvDefs.height || globalDefs.height || 512;
-                            document.getElementById('width').value = w;
-                            document.getElementById('height').value = h;
-                            syncResolutionPreset(w, h);
-                            document.getElementById('steps').value = srvDefs.steps || globalDefs.steps || 20;
-                            document.getElementById('cfgScale').value = srvDefs.cfg_scale !== undefined ? srvDefs.cfg_scale : (globalDefs.cfg_scale !== undefined ? globalDefs.cfg_scale : 7.0);
-                            if (srvDefs.sampler_name || globalDefs.sampler_name) {
-                                document.getElementById('sampler').value = srvDefs.sampler_name || globalDefs.sampler_name || 'euler_a';
-                            }
-                            saveParamsToStorage();
+                            applyDefaultParams();
                         }
                     }
                 };
@@ -991,7 +972,6 @@
                     if (parts.length === 2 && parts[0] && parts[1]) {
                         document.getElementById('width').value = parts[0];
                         document.getElementById('height').value = parts[1];
-                        saveParamsToStorage();
                     }
                 });
             }
@@ -1021,35 +1001,9 @@
                 if (opts.cfgScaleRange.step !== undefined) document.getElementById('cfgScale').step = opts.cfgScaleRange.step;
             }
 
+            // 新規作成時は常にサーバー設定＋デフォルト設定を初期適用
             if (!editId) {
-                const saved = loadParamsFromStorage();
-                if (saved) {
-                    applyParams({
-                        ...saved,
-                        prompt: '',          // 新規作成時はプロンプトを初期化
-                        negative_prompt: '', // 新規作成時はネガティブプロンプトを初期化
-                        prompt_assist: true  // 新規作成時はAIアシストもON（初期値）に初期化
-                    });
-                } else {
-                    applyParams({
-                        prompt: '',
-                        negative_prompt: '',
-                        prompt_assist: true,
-                        width: defs.width || 512,
-                        height: defs.height || 512,
-                        steps: defs.steps || 20,
-                        cfg_scale: defs.cfg_scale || 7.0,
-                        seed: defs.seed !== undefined ? defs.seed : -1,
-                        sampler_name: defs.sampler_name || 'euler_a'
-                    });
-                }
-                document.getElementById('prompt').value = '';
-                document.getElementById('negativePrompt').value = '';
-                if (document.getElementById('promptAssistCheck')) {
-                    document.getElementById('promptAssistCheck').checked = true;
-                }
-                document.getElementById('promptTransNotice').style.display = 'none';
-                document.getElementById('negTransNotice').style.display = 'none';
+                applyDefaultParams();
             }
 
         } catch (e) {
@@ -1057,44 +1011,10 @@
         }
     }
 
-    // 各入力フィールドの変更を自動保存
-    ['prompt', 'negativePrompt', 'width', 'height', 'steps', 'cfgScale', 'sampler', 'seed', 'promptAssistCheck'].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) {
-            el.addEventListener('input', saveParamsToStorage);
-            el.addEventListener('change', saveParamsToStorage);
-        }
-    });
-
     // 「🔄 既定値に戻す」ボタン
     document.getElementById('resetBtn').addEventListener('click', () => {
         if (!confirm('すべての入力パラメータを初期の既定値に戻しますか？')) return;
-
-        localStorage.removeItem(STORAGE_KEY);
-        document.getElementById('prompt').value = '';
-        document.getElementById('negativePrompt').value = '';
-        if (document.getElementById('promptAssistCheck')) {
-            document.getElementById('promptAssistCheck').checked = true;
-        }
-        document.getElementById('promptTransNotice').style.display = 'none';
-        document.getElementById('negTransNotice').style.display = 'none';
-
-        const currentServerId = document.getElementById('sdServerSelect')?.value;
-        const currentServer = currentServers.find(s => s.id === currentServerId);
-        const srvDefs = currentServer?.defaults || {};
-        const defs = serverDefaults || {};
-
-        applyParams({
-            prompt: '',
-            negative_prompt: '',
-            prompt_assist: true,
-            width: srvDefs.width || defs.width || 512,
-            height: srvDefs.height || defs.height || 512,
-            steps: srvDefs.steps || defs.steps || 20,
-            cfg_scale: srvDefs.cfg_scale !== undefined ? srvDefs.cfg_scale : (defs.cfg_scale !== undefined ? defs.cfg_scale : 7.0),
-            seed: defs.seed !== undefined ? defs.seed : -1,
-            sampler_name: srvDefs.sampler_name || defs.sampler_name || 'euler_a'
-        });
+        applyDefaultParams();
     });
 
     async function initPage() {
@@ -1168,16 +1088,47 @@
     }
 
     // 手動キャンセルボタン
-    document.getElementById('cancelBtn').addEventListener('click', () => {
+    document.getElementById('cancelBtn').addEventListener('click', async () => {
+        if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = null;
+        }
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+
+        const taskIdToCancel = currentTaskId;
+        currentTaskId = null;
+
+        if (taskIdToCancel) {
+            try {
+                await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'cancel', taskId: taskIdToCancel })
+                });
+            } catch (e) {}
+        }
+
         if (currentAbortController) {
             currentAbortController.abort();
             currentAbortController = null;
         }
+
+        document.getElementById('loadingIndicator').style.display = 'none';
+        document.getElementById('submitBtn').disabled = false;
+        document.getElementById('cancelBtn').style.display = 'none';
+        
+        const errorBox = document.getElementById('errorBox');
+        errorBox.textContent = '🛑 画像生成をキャンセルしました';
+        errorBox.style.display = 'block';
+        document.getElementById('emptyPreview').style.display = 'block';
     });
 
     window.addEventListener('beforeunload', () => {
-        if (currentAbortController) {
-            currentAbortController.abort();
+        if (currentTaskId) {
+            navigator.sendBeacon('/api/generate', JSON.stringify({ action: 'cancel', taskId: currentTaskId }));
         }
     });
 
@@ -1261,10 +1212,9 @@
         await saveImageToServer();
     });
 
-    // 生成フォーム送信
+    // 生成フォーム送信 (非同期タスク・ポーリング方式)
     document.getElementById('genForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        saveParamsToStorage();
 
         const submitBtn = document.getElementById('submitBtn');
         const cancelBtn = document.getElementById('cancelBtn');
@@ -1302,8 +1252,6 @@
             elapsedTimer.textContent = `${elapsed}s`;
         }, 100);
 
-        currentAbortController = new AbortController();
-
         const isAssist = document.getElementById('promptAssistCheck')?.checked ?? true;
         const payload = {
             serverId: document.getElementById('sdServerSelect')?.value || null,
@@ -1322,79 +1270,111 @@
         };
 
         try {
+            // 生成リクエスト開始（taskId を即時取得）
             const res = await fetch('/api/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-                signal: currentAbortController.signal
+                body: JSON.stringify(payload)
             });
 
-            const data = await res.json();
-            clearInterval(timerInterval);
-            loadingIndicator.style.display = 'none';
-            submitBtn.disabled = false;
-            cancelBtn.style.display = 'none';
-            currentAbortController = null;
-
-            if (!data.success) {
-                let msg = data.error || '画像生成に失敗しました';
-                if (data.errors && Array.isArray(data.errors)) {
-                    msg = data.errors.map(err => err.message).join('\n');
+            const initData = await res.json();
+            if (!initData.success) {
+                clearInterval(timerInterval);
+                loadingIndicator.style.display = 'none';
+                submitBtn.disabled = false;
+                cancelBtn.style.display = 'none';
+                let msg = initData.error || '画像生成の開始に失敗しました';
+                if (initData.errors && Array.isArray(initData.errors)) {
+                    msg = initData.errors.map(err => err.message).join('\n');
                 }
-                const spentSec = ((Date.now() - startTimestamp) / 1000).toFixed(2);
-                errorBox.textContent = `${msg} (エラーまでの経過時間: ${spentSec}秒)`;
+                errorBox.textContent = msg;
                 errorBox.style.display = 'block';
                 emptyPreview.style.display = 'block';
                 return;
             }
 
-            // 成功時
-            lastGeneratedData = {
-                ...data,
-                saved: false
-            };
+            currentTaskId = initData.taskId;
 
-            const finalSec = data.durationSec || ((Date.now() - startTimestamp) / 1000).toFixed(2);
-            spentTimeLabel.textContent = `${finalSec} 秒`;
-            usedSeedLabel.textContent = data.seed !== undefined ? data.seed : '-';
+            // 1秒おきにサーバー側タスクの進行状態をポーリング
+            pollInterval = setInterval(async () => {
+                try {
+                    if (!currentTaskId) {
+                        clearInterval(pollInterval);
+                        return;
+                    }
+                    const pollRes = await fetch(`/api/generate?taskId=${currentTaskId}`);
+                    const data = await pollRes.json();
 
-            const usedServerRow = document.getElementById('usedServerRow');
-            const usedServerLabel = document.getElementById('usedServerLabel');
-            if (data.serverInfo && usedServerRow && usedServerLabel) {
-                usedServerLabel.textContent = data.serverInfo.name || data.serverInfo.id;
-                usedServerRow.style.display = 'block';
-            } else if (usedServerRow) {
-                usedServerRow.style.display = 'none';
-            }
-            
-            const trans = data.translated && data.translated.prompt;
-            if (trans) {
-                translatedPromptLabel.textContent = trans;
-                translatedPromptRow.style.display = 'block';
-            }
+                    if (data.status === 'running') {
+                        // 実行中（継続）
+                        return;
+                    }
 
-            resultMeta.style.display = 'block';
+                    // 完了または失敗
+                    clearInterval(pollInterval);
+                    pollInterval = null;
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                    loadingIndicator.style.display = 'none';
+                    submitBtn.disabled = false;
+                    cancelBtn.style.display = 'none';
+                    currentTaskId = null;
 
-            resultImage.src = data.imageDataUrl;
-            resultImage.style.display = 'block';
-            downloadBtn.href = data.imageDataUrl;
-            resultActions.style.display = 'flex';
+                    if (!data.success || data.status === 'failed') {
+                        let msg = data.error || '画像生成に失敗しました';
+                        const spentSec = ((Date.now() - startTimestamp) / 1000).toFixed(2);
+                        errorBox.textContent = `${msg} (エラーまでの経過時間: ${spentSec}秒)`;
+                        errorBox.style.display = 'block';
+                        emptyPreview.style.display = 'block';
+                        return;
+                    }
 
-            showSaveModal(data.imageDataUrl);
+                    // 成功時
+                    lastGeneratedData = {
+                        ...data,
+                        saved: false
+                    };
+
+                    const finalSec = data.durationSec || ((Date.now() - startTimestamp) / 1000).toFixed(2);
+                    spentTimeLabel.textContent = `${finalSec} 秒`;
+                    usedSeedLabel.textContent = data.seed !== undefined ? data.seed : '-';
+
+                    const usedServerRow = document.getElementById('usedServerRow');
+                    const usedServerLabel = document.getElementById('usedServerLabel');
+                    if (data.serverInfo && usedServerRow && usedServerLabel) {
+                        usedServerLabel.textContent = data.serverInfo.name || data.serverInfo.id;
+                        usedServerRow.style.display = 'block';
+                    } else if (usedServerRow) {
+                        usedServerRow.style.display = 'none';
+                    }
+                    
+                    const trans = data.translated && data.translated.prompt;
+                    if (trans) {
+                        translatedPromptLabel.textContent = trans;
+                        translatedPromptRow.style.display = 'block';
+                    }
+
+                    resultMeta.style.display = 'block';
+
+                    resultImage.src = data.imageDataUrl;
+                    resultImage.style.display = 'block';
+                    downloadBtn.href = data.imageDataUrl;
+                    resultActions.style.display = 'flex';
+
+                    showSaveModal(data.imageDataUrl);
+
+                } catch (pollErr) {
+                    console.error('Polling error:', pollErr);
+                }
+            }, 1000);
 
         } catch (e) {
             clearInterval(timerInterval);
+            if (pollInterval) clearInterval(pollInterval);
             loadingIndicator.style.display = 'none';
             submitBtn.disabled = false;
             cancelBtn.style.display = 'none';
-            currentAbortController = null;
-
-            const spentSec = ((Date.now() - startTimestamp) / 1000).toFixed(2);
-            if (e.name === 'AbortError') {
-                errorBox.textContent = `🛑 生成処理がキャンセルされました。(経過時間: ${spentSec}秒)`;
-            } else {
-                errorBox.textContent = `通信エラー: ${e.message} (経過時間: ${spentSec}秒)`;
-            }
+            errorBox.textContent = `通信エラー: ${e.message}`;
             errorBox.style.display = 'block';
             emptyPreview.style.display = 'block';
         }
