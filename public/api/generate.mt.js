@@ -68,6 +68,7 @@ exports.handler = async function() {
         // sd-server へ生成リクエスト (実際に渡すのは英語プロンプト)
         const sdParams = {
             ...params,
+            serverId: body.serverId || body.server_id,
             prompt: effectivePrompt,
             negative_prompt: effectiveNegativePrompt
         };
@@ -106,6 +107,7 @@ exports.handler = async function() {
             imageDataUrl: `data:image/png;base64,${genResult.base64Data}`,
             imagePath: imagePath,
             data: createdItem,
+            serverInfo: genResult.serverInfo || null,
             seed: finalSeed,
             durationMs: durationMs,
             durationSec: (durationMs / 1000).toFixed(2),

@@ -1,0 +1,43 @@
+{
+  "activeModel": "onnx-community/Qwen2.5-1.5B-Instruct",
+  "models": [
+    {
+      "id": "onnx-community/Qwen2.5-1.5B-Instruct",
+      "name": "Qwen 2.5 1.5B Instruct (ONNX Q4)",
+      "description": "高精度な翻訳とプロンプト最適化・ネガティブ補完を両立した推奨モデル（デフォルト）",
+      "dtype": "q4",
+      "task": "text-generation"
+    },
+    {
+      "id": "onnx-community/Qwen2.5-3B-Instruct",
+      "name": "Qwen 2.5 3B Instruct (ONNX Q4)",
+      "description": "より高度な表現力と複雑なプロンプト展開に対応した高品質モデル",
+      "dtype": "q4",
+      "task": "text-generation"
+    },
+    {
+      "id": "onnx-community/gemma-3-1b-it-ONNX",
+      "name": "Gemma 3 1B IT (ONNX Q4)",
+      "description": "バランスの取れた Google Gemma 3 (1B) モデル",
+      "dtype": "q4",
+      "task": "text-generation"
+    },
+    {
+      "id": "LiquidAI/LFM2.5-1.2B-JP-ONNX",
+      "name": "LFM2.5 1.2B JP (ONNX Q4)",
+      "description": "日本語ニュアンスの解釈に優れた軽量モデル",
+      "dtype": "q4",
+      "task": "text-generation"
+    }
+  ],
+  "external": {
+    "endpoint": "http://192.168.0.234:8080/v1",
+    "model": "default",
+    "apiKey": ""
+  },
+  "openai": {
+    "apiKey": "",
+    "model": "gpt-5.6-luna"
+  },
+  "provider": "external"
+}

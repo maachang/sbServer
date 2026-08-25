@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sd-server 設定 - sdServer</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #f4f6f9;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background: #ffffff;
+            border-bottom: 1px solid #e1e4e8;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s ease;
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+        .btn-primary { background: #2563eb; color: #ffffff; }
+        .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
+        .btn-secondary { background: #ffffff; color: #374151; border-color: #d1d5db; }
+        .btn-secondary:hover:not(:disabled) { background: #f9fafb; border-color: #9ca3af; }
+        .btn-success { background: #059669; color: #ffffff; }
+        .btn-success:hover:not(:disabled) { background: #047857; }
+        .btn-danger { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+        .btn-danger:hover:not(:disabled) { background: #fecaca; }
+        .btn-outline-danger { background: #ffffff; color: #dc2626; border-color: #fca5a5; }
+        .btn-outline-danger:hover:not(:disabled) { background: #fef2f2; border-color: #f87171; }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+        .btn-xs { padding: 4px 8px; font-size: 12px; }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .container { max-width: 1000px; margin: 0 auto; padding: 24px 16px; }
+
+        /* アクティブサーバーバナー */
+        .active-banner {
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #bbf7d0;
+            background: linear-gradient(to right, #f0fdf4, #ffffff);
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .active-banner-info { display: flex; align-items: center; gap: 12px; }
+        .active-status-badge {
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 999px;
+            background: #10b981;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+        }
+
+        /* サーバーカードグリッド */
+        .server-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+            gap: 16px;
+        }
+        @media (max-width: 640px) {
+            .server-grid { grid-template-columns: 1fr; }
+        }
+
+        .server-item {
+            background: #ffffff;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+        }
+        .server-item.is-active {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+
+        .server-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .server-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #111827;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .server-url {
+            font-family: monospace;
+            font-size: 13px;
+            color: #2563eb;
+            background: #eff6ff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-bottom: 8px;
+            word-break: break-all;
+        }
+        .server-desc {
+            font-size: 13px;
+            color: #4b5563;
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        .server-defaults-badge {
+            font-size: 12px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            color: #1e40af;
+            padding: 6px 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .server-meta {
+            font-size: 12px;
+            color: #6b7280;
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .server-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-top: 1px solid #e5e7eb;
+            padding-top: 12px;
+            margin-top: auto;
+            gap: 8px;
+        }
+
+        .badge-active {
+            background: #10b981;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            border-radius: 999px;
+        }
+        .badge-endpoint {
+            background: #e0e7ff;
+            color: #4338ca;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        /* フォームグループ */
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .form-row {
+            display: flex;
+            gap: 12px;
+        }
+        .form-row .form-group { flex: 1; }
+
+        /* モーダル */
+        .modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(2px);
+        }
+        .modal-content {
+            background: #ffffff;
+            border-radius: 8px;
+            max-width: 580px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 24px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 12px;
+        }
+        .modal-title { font-size: 18px; font-weight: 700; color: #111827; margin: 0; }
+        .modal-close {
+            background: transparent;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #9ca3af;
+        }
+        .modal-close:hover { color: #374151; }
+
+        .alert-box {
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 16px;
+            display: none;
+        }
+        .alert-success { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+        .test-status {
+            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 4px;
+            margin-top: 6px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-title">
+        <a href="/menu.html" style="text-decoration: none; color: inherit;">🎨 sdServer</a>
+        <span style="font-size: 13px; font-weight: normal; color: #6b7280; margin-left: 8px;">sd-server設定</span>
+    </div>
+    <div class="header-actions">
+        <a href="/models.html" class="btn btn-secondary">🤖 LLM設定</a>
+        <a href="/generate.html?mode=new" class="btn btn-primary">➕ 画像生成</a>
+        <a href="/menu.html" class="btn btn-secondary">一覧へ戻る</a>
+    </div>
+</header>
+
+<div class="container">
+    <div id="globalAlert" class="alert-box"></div>
+
+    <!-- アクティブサーバーバナー -->
+    <div class="active-banner">
+        <div class="active-banner-info">
+            <div style="font-size: 28px;">🎨</div>
+            <div>
+                <div style="font-size: 12px; color: #166534; font-weight: 600; text-transform: uppercase;">現在のデフォルト SD サーバー</div>
+                <div style="font-size: 17px; font-weight: 700; color: #111827;" id="activeServerNameBanner">読み込み中...</div>
+                <div style="font-size: 12px; color: #4b5563; font-family: monospace;" id="activeServerUrlBanner"></div>
+            </div>
+        </div>
+        <div>
+            <span class="active-status-badge">✅ デフォルト接続先</span>
+        </div>
+    </div>
+
+    <!-- サーバー一覧セクション -->
+    <div class="card">
+        <div class="section-header">
+            <div>
+                <h2 class="section-title">🖥️ 登録済み SD サーバー一覧</h2>
+                <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">
+                    複数の sd-server（異なるモデルやGPUサーバー）を登録し、各サーバー専用の defaults（幅・高さ・steps等）を設定できます。
+                </div>
+            </div>
+            <button type="button" id="addServerBtn" class="btn btn-primary btn-sm">➕ サーバーを追加</button>
+        </div>
+
+        <div id="serverList" class="server-grid">
+            <!-- サーバー一覧が動的に描画されます -->
+        </div>
+    </div>
+
+    <!-- 既定パラメータ設定セクション -->
+    <div class="card">
+        <div class="section-header">
+            <h2 class="section-title">⚙️ 共通デフォルト画像生成パラメータ</h2>
+        </div>
+        <div style="font-size: 12px; color: #6b7280; margin-bottom: 16px;">
+            各サーバーに個別の defaults が設定されていない場合、または新規作成時に適用されるベースの生成パラメータです。
+        </div>
+
+        <form id="defaultsForm">
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="defWidth">幅 (Width)</label>
+                    <input type="number" id="defWidth" min="64" max="2048" step="64" value="512" required />
+                </div>
+                <div class="form-group">
+                    <label for="defHeight">高さ (Height)</label>
+                    <input type="number" id="defHeight" min="64" max="2048" step="64" value="512" required />
+                </div>
+                <div class="form-group">
+                    <label for="defSteps">ステップ数 (Steps)</label>
+                    <input type="number" id="defSteps" min="1" max="150" value="20" required />
+                </div>
+                <div class="form-group">
+                    <label for="defCfg">CFGスケール</label>
+                    <input type="number" id="defCfg" min="1" max="30" step="0.5" value="7.0" required />
+                </div>
+                <div class="form-group">
+                    <label for="defSampler">サンプラー</label>
+                    <select id="defSampler">
+                        <option value="euler_a">Euler a</option>
+                        <option value="euler">Euler</option>
+                        <option value="dpm++_2m">DPM++ 2M</option>
+                        <option value="dpm++_2m_karras">DPM++ 2M Karras</option>
+                        <option value="dpm++_sde">DPM++ SDE</option>
+                        <option value="ddim">DDIM</option>
+                    </select>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                <button type="submit" class="btn btn-secondary btn-sm">💾 共通デフォルト設定を保存</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- サーバー追加/編集モーダル -->
+<div id="serverModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modalTitle">サーバーの追加</h3>
+            <button type="button" class="modal-close" id="modalCloseBtn">✕</button>
+        </div>
+
+        <form id="serverForm">
+            <input type="hidden" id="formIsEdit" value="0" />
+
+            <div class="form-group">
+                <label for="serverName">サーバー表示名 <span style="color: red;">*</span></label>
+                <input type="text" id="serverName" placeholder="例: AnyLoRA アニメ特化サーバー / SDXL サーバー" required />
+            </div>
+
+            <div class="form-group">
+                <label for="serverId">サーバー識別ID <span style="color: red;">*</span></label>
+                <input type="text" id="serverId" placeholder="例: server-1 / anylora-main" required pattern="[a-zA-Z0-9_\-]+" />
+                <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">※ 半角英数字、アンダースコア、ハイフンのみ</div>
+            </div>
+
+            <div class="form-group">
+                <label for="serverBaseUrl">ベースURL (Base URL) <span style="color: red;">*</span></label>
+                <input type="url" id="serverBaseUrl" placeholder="例: http://192.168.0.233:8080 または http://127.0.0.1:8080" required />
+            </div>
+
+            <div class="form-group">
+                <label for="serverEndpoint">エンドポイント種別 <span style="color: red;">*</span></label>
+                <select id="serverEndpointSelect">
+                    <option value="/sdapi/v1/txt2img">/sdapi/v1/txt2img (Automatic1111 / sd.cpp 互換・標準)</option>
+                    <option value="/v1/images/generations">/v1/images/generations (OpenAI / sd.cpp 互換)</option>
+                    <option value="custom">カスタム入力...</option>
+                </select>
+                <input type="text" id="serverEndpointCustom" placeholder="例: /custom/txt2img" style="display: none; margin-top: 6px;" />
+            </div>
+
+            <div class="form-group">
+                <label for="serverTimeoutSec">タイムアウト秒数</label>
+                <input type="number" id="serverTimeoutSec" min="10" max="3600" value="600" />
+                <div style="font-size: 11px; color: #6b7280; margin-top: 2px;">※ 生成に時間がかかる場合は長め（例: 600秒 = 10分）に設定してください</div>
+            </div>
+
+            <div class="form-group">
+                <label for="serverDesc">説明・モデルメモ</label>
+                <textarea id="serverDesc" rows="2" placeholder="例: イラスト向けモデル AnyLoRA checkpoint をロード中"></textarea>
+            </div>
+
+            <!-- サーバー専用デフォルト生成パラメータ -->
+            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; margin-top: 16px; margin-bottom: 16px;">
+                <div style="font-size: 13px; font-weight: 700; color: #1e293b; margin-bottom: 4px;">
+                    ⚙️ このサーバー専用のデフォルトパラメータ (defaults)
+                </div>
+                <div style="font-size: 11px; color: #64748b; margin-bottom: 10px;">
+                    ※ 未入力（空欄）の項目は「共通デフォルト」が適用されます。SDXL等で1024x1024にしたい場合やSteps数を変えたい場合に指定してください。
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="margin-bottom: 8px;">
+                        <label for="srvDefWidth" style="font-size: 12px;">幅 (Width)</label>
+                        <input type="number" id="srvDefWidth" placeholder="共通設定に従う" min="64" max="2048" step="64" />
+                    </div>
+                    <div class="form-group" style="margin-bottom: 8px;">
+                        <label for="srvDefHeight" style="font-size: 12px;">高さ (Height)</label>
+                        <input type="number" id="srvDefHeight" placeholder="共通設定に従う" min="64" max="2048" step="64" />
+                    </div>
+                    <div class="form-group" style="margin-bottom: 8px;">
+                        <label for="srvDefSteps" style="font-size: 12px;">ステップ数</label>
+                        <input type="number" id="srvDefSteps" placeholder="共通設定に従う" min="1" max="150" />
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="srvDefCfg" style="font-size: 12px;">CFGスケール</label>
+                        <input type="number" id="srvDefCfg" placeholder="共通設定に従う" min="1" max="30" step="0.5" />
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="srvDefSampler" style="font-size: 12px;">サンプラー</label>
+                        <select id="srvDefSampler">
+                            <option value="">(共通デフォルトに従う)</option>
+                            <option value="euler_a">Euler a</option>
+                            <option value="euler">Euler</option>
+                            <option value="dpm++_2m">DPM++ 2M</option>
+                            <option value="dpm++_2m_karras">DPM++ 2M Karras</option>
+                            <option value="dpm++_sde">DPM++ SDE</option>
+                            <option value="ddim">DDIM</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="modalTestResult" class="test-status"></div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                <button type="button" id="modalTestBtn" class="btn btn-secondary btn-sm">⚡ 接続テスト</button>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" id="modalCancelBtn" class="btn btn-secondary btn-sm">キャンセル</button>
+                    <button type="submit" id="modalSaveBtn" class="btn btn-primary btn-sm">💾 保存する</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    let serverConfig = null;
+
+    function showAlert(msg, isError = false) {
+        const el = document.getElementById('globalAlert');
+        el.textContent = msg;
+        el.className = `alert-box ${isError ? 'alert-error' : 'alert-success'}`;
+        el.style.display = 'block';
+        setTimeout(() => {
+            el.style.display = 'none';
+        }, 5000);
+    }
+
+    async function loadServers() {
+        try {
+            const res = await fetch('/api/sdServers');
+            const json = await res.json();
+            if (!json.success) {
+                showAlert('設定の読み込みに失敗しました: ' + (json.error || ''), true);
+                return;
+            }
+
+            serverConfig = json.data;
+            renderServers();
+            renderDefaults();
+        } catch (e) {
+            showAlert('通信エラー: ' + e.message, true);
+        }
+    }
+
+    function renderServers() {
+        const listEl = document.getElementById('serverList');
+        listEl.innerHTML = '';
+
+        const servers = serverConfig.servers || [];
+        const activeId = serverConfig.activeServer || (servers[0] ? servers[0].id : '');
+
+        // バナー更新
+        const activeServer = servers.find(s => s.id === activeId) || servers[0];
+        if (activeServer) {
+            document.getElementById('activeServerNameBanner').textContent = activeServer.name || activeServer.id;
+            document.getElementById('activeServerUrlBanner').textContent = `${activeServer.baseUrl}${activeServer.endpoint}`;
+        } else {
+            document.getElementById('activeServerNameBanner').textContent = '未設定';
+            document.getElementById('activeServerUrlBanner').textContent = '';
+        }
+
+        if (servers.length === 0) {
+            listEl.innerHTML = `
+                <div style="grid-column: 1/-1; padding: 32px; text-align: center; color: #6b7280; background: #f9fafb; border-radius: 8px; border: 1px dashed #d1d5db;">
+                    登録されている SD サーバーがありません。「➕ サーバーを追加」から登録してください。
+                </div>
+            `;
+            return;
+        }
+
+        servers.forEach(srv => {
+            const isActive = srv.id === activeId;
+            const timeoutSec = Math.round((srv.timeoutMs || 600000) / 1000);
+
+            // 固有defaults表示
+            let defaultsHtml = '';
+            if (srv.defaults && Object.keys(srv.defaults).length > 0) {
+                const parts = [];
+                if (srv.defaults.width && srv.defaults.height) parts.push(`📐 ${srv.defaults.width}x${srv.defaults.height}`);
+                if (srv.defaults.steps) parts.push(`⚡ ${srv.defaults.steps} steps`);
+                if (srv.defaults.cfg_scale !== undefined) parts.push(`🎚️ CFG ${srv.defaults.cfg_scale}`);
+                if (srv.defaults.sampler_name) parts.push(`🎯 ${srv.defaults.sampler_name}`);
+                defaultsHtml = `<div class="server-defaults-badge"><strong>⚙️ 固有defaults:</strong> ${parts.join(' | ')}</div>`;
+            } else {
+                defaultsHtml = `<div style="font-size: 11px; color: #94a3b8; margin-bottom: 10px;">⚙️ 固有設定なし（共通デフォルトを適用）</div>`;
+            }
+
+            const card = document.createElement('div');
+            card.className = `server-item ${isActive ? 'is-active' : ''}`;
+            card.innerHTML = `
+                <div>
+                    <div class="server-header">
+                        <div class="server-name">
+                            <span>${escapeHtml(srv.name || srv.id)}</span>
+                            ${isActive ? '<span class="badge-active">デフォルト</span>' : ''}
+                        </div>
+                        <span class="badge-endpoint">${escapeHtml(srv.endpoint || '/sdapi/v1/txt2img')}</span>
+                    </div>
+
+                    <div class="server-url">🌐 ${escapeHtml(srv.baseUrl || '')}${escapeHtml(srv.endpoint || '')}</div>
+                    
+                    <div class="server-desc">${escapeHtml(srv.description || '説明なし')}</div>
+
+                    ${defaultsHtml}
+
+                    <div class="server-meta">
+                        <span>⏱️ タイムアウト: ${timeoutSec}秒</span>
+                        <span>🔑 ID: <code>${escapeHtml(srv.id)}</code></span>
+                    </div>
+
+                    <div id="testResult_${srv.id}" class="test-status"></div>
+                </div>
+
+                <div class="server-actions">
+                    <div>
+                        <button type="button" class="btn btn-secondary btn-xs test-btn" data-id="${srv.id}">⚡ 接続テスト</button>
+                    </div>
+                    <div style="display: flex; gap: 6px;">
+                        ${!isActive ? `<button type="button" class="btn btn-success btn-xs set-active-btn" data-id="${srv.id}">★ デフォルトに設定</button>` : ''}
+                        <button type="button" class="btn btn-secondary btn-xs edit-btn" data-id="${srv.id}">✏️ 編集</button>
+                        <button type="button" class="btn btn-outline-danger btn-xs delete-btn" data-id="${srv.id}">🗑️</button>
+                    </div>
+                </div>
+            `;
+            listEl.appendChild(card);
+        });
+
+        // ボタンイベント付与
+        document.querySelectorAll('.set-active-btn').forEach(btn => {
+            btn.addEventListener('click', () => setActive(btn.dataset.id));
+        });
+        document.querySelectorAll('.edit-btn').forEach(btn => {
+            btn.addEventListener('click', () => openEditModal(btn.dataset.id));
+        });
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', () => deleteServer(btn.dataset.id));
+        });
+        document.querySelectorAll('.test-btn').forEach(btn => {
+            btn.addEventListener('click', () => testServer(btn.dataset.id));
+        });
+    }
+
+    function renderDefaults() {
+        const defs = serverConfig.defaults || {};
+        if (defs.width) document.getElementById('defWidth').value = defs.width;
+        if (defs.height) document.getElementById('defHeight').value = defs.height;
+        if (defs.steps) document.getElementById('defSteps').value = defs.steps;
+        if (defs.cfg_scale) document.getElementById('defCfg').value = defs.cfg_scale;
+        if (defs.sampler_name) document.getElementById('defSampler').value = defs.sampler_name;
+    }
+
+    function escapeHtml(str) {
+        return String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    async function setActive(serverId) {
+        try {
+            const res = await fetch('/api/sdServers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'setActive', serverId })
+            });
+            const json = await res.json();
+            if (json.success) {
+                showAlert(json.message || 'デフォルトサーバーを変更しました');
+                localStorage.setItem('sd_server_id', serverId);
+                serverConfig = json.data;
+                renderServers();
+            } else {
+                showAlert(json.error || '変更に失敗しました', true);
+            }
+        } catch (e) {
+            showAlert('通信エラー: ' + e.message, true);
+        }
+    }
+
+    async function deleteServer(serverId) {
+        if (!confirm(`SD サーバー [${serverId}] を削除しますか？`)) return;
+        try {
+            const res = await fetch('/api/sdServers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'deleteServer', serverId })
+            });
+            const json = await res.json();
+            if (json.success) {
+                showAlert(json.message || 'サーバーを削除しました');
+                serverConfig = json.data;
+                renderServers();
+            } else {
+                showAlert(json.error || '削除に失敗しました', true);
+            }
+        } catch (e) {
+            showAlert('通信エラー: ' + e.message, true);
+        }
+    }
+
+    async function testServer(serverId) {
+        const srv = (serverConfig.servers || []).find(s => s.id === serverId);
+        if (!srv) return;
+
+        const resultEl = document.getElementById(`testResult_${serverId}`);
+        if (resultEl) {
+            resultEl.style.display = 'block';
+            resultEl.style.background = '#eff6ff';
+            resultEl.style.color = '#1e40af';
+            resultEl.textContent = '⏳ 接続テスト中...';
+        }
+
+        try {
+            const res = await fetch('/api/sdServers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'testConnection',
+                    baseUrl: srv.baseUrl,
+                    endpoint: srv.endpoint
+                })
+            });
+            const json = await res.json();
+            if (json.success) {
+                if (resultEl) {
+                    resultEl.style.background = '#dcfce7';
+                    resultEl.style.color = '#166534';
+                    resultEl.textContent = `✅ ${json.message || '接続成功'}`;
+                }
+            } else {
+                if (resultEl) {
+                    resultEl.style.background = '#fee2e2';
+                    resultEl.style.color = '#991b1b';
+                    resultEl.textContent = `❌ ${json.error || '接続失敗'}`;
+                }
+            }
+        } catch (e) {
+            if (resultEl) {
+                resultEl.style.background = '#fee2e2';
+                resultEl.style.color = '#991b1b';
+                resultEl.textContent = `❌ 通信エラー: ${e.message}`;
+            }
+        }
+    }
+
+    // モーダル操作
+    const modal = document.getElementById('serverModal');
+    const form = document.getElementById('serverForm');
+    const endpointSelect = document.getElementById('serverEndpointSelect');
+    const endpointCustom = document.getElementById('serverEndpointCustom');
+    const modalTestResult = document.getElementById('modalTestResult');
+
+    endpointSelect.addEventListener('change', (e) => {
+        if (e.target.value === 'custom') {
+            endpointCustom.style.display = 'block';
+            endpointCustom.required = true;
+        } else {
+            endpointCustom.style.display = 'none';
+            endpointCustom.required = false;
+        }
+    });
+
+    document.getElementById('addServerBtn').addEventListener('click', () => {
+        document.getElementById('modalTitle').textContent = '新しい SD サーバーを追加';
+        document.getElementById('formIsEdit').value = '0';
+        document.getElementById('serverId').readOnly = false;
+        form.reset();
+        document.getElementById('serverId').value = `server-${Date.now().toString().slice(-4)}`;
+        document.getElementById('serverBaseUrl').value = 'http://192.168.0.233:8080';
+        document.getElementById('serverTimeoutSec').value = '600';
+        endpointSelect.value = '/sdapi/v1/txt2img';
+        endpointCustom.style.display = 'none';
+        
+        document.getElementById('srvDefWidth').value = '';
+        document.getElementById('srvDefHeight').value = '';
+        document.getElementById('srvDefSteps').value = '';
+        document.getElementById('srvDefCfg').value = '';
+        document.getElementById('srvDefSampler').value = '';
+
+        modalTestResult.style.display = 'none';
+        modal.style.display = 'flex';
+    });
+
+    function openEditModal(serverId) {
+        const srv = (serverConfig.servers || []).find(s => s.id === serverId);
+        if (!srv) return;
+
+        document.getElementById('modalTitle').textContent = 'SD サーバーの編集';
+        document.getElementById('formIsEdit').value = '1';
+        document.getElementById('serverId').value = srv.id;
+        document.getElementById('serverId').readOnly = true;
+        document.getElementById('serverName').value = srv.name || '';
+        document.getElementById('serverBaseUrl').value = srv.baseUrl || '';
+        document.getElementById('serverTimeoutSec').value = Math.round((srv.timeoutMs || 600000) / 1000);
+        document.getElementById('serverDesc').value = srv.description || '';
+
+        const srvDef = srv.defaults || {};
+        document.getElementById('srvDefWidth').value = srvDef.width || '';
+        document.getElementById('srvDefHeight').value = srvDef.height || '';
+        document.getElementById('srvDefSteps').value = srvDef.steps || '';
+        document.getElementById('srvDefCfg').value = srvDef.cfg_scale !== undefined ? srvDef.cfg_scale : '';
+        document.getElementById('srvDefSampler').value = srvDef.sampler_name || '';
+
+        const ep = srv.endpoint || '/sdapi/v1/txt2img';
+        if (ep === '/sdapi/v1/txt2img' || ep === '/v1/images/generations') {
+            endpointSelect.value = ep;
+            endpointCustom.style.display = 'none';
+            endpointCustom.required = false;
+        } else {
+            endpointSelect.value = 'custom';
+            endpointCustom.value = ep;
+            endpointCustom.style.display = 'block';
+            endpointCustom.required = true;
+        }
+
+        modalTestResult.style.display = 'none';
+        modal.style.display = 'flex';
+    }
+
+    document.getElementById('modalCloseBtn').addEventListener('click', () => modal.style.display = 'none');
+    document.getElementById('modalCancelBtn').addEventListener('click', () => modal.style.display = 'none');
+
+    // モーダル内テスト接続
+    document.getElementById('modalTestBtn').addEventListener('click', async () => {
+        const baseUrl = document.getElementById('serverBaseUrl').value.trim();
+        let endpoint = endpointSelect.value;
+        if (endpoint === 'custom') {
+            endpoint = endpointCustom.value.trim();
+        }
+
+        if (!baseUrl) {
+            alert('ベースURLを入力してください');
+            return;
+        }
+
+        modalTestResult.style.display = 'block';
+        modalTestResult.style.background = '#eff6ff';
+        modalTestResult.style.color = '#1e40af';
+        modalTestResult.textContent = '⏳ 接続テスト中...';
+
+        try {
+            const res = await fetch('/api/sdServers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'testConnection', baseUrl, endpoint })
+            });
+            const json = await res.json();
+            if (json.success) {
+                modalTestResult.style.background = '#dcfce7';
+                modalTestResult.style.color = '#166534';
+                modalTestResult.textContent = `✅ ${json.message || '接続成功'}`;
+            } else {
+                modalTestResult.style.background = '#fee2e2';
+                modalTestResult.style.color = '#991b1b';
+                modalTestResult.textContent = `❌ ${json.error || '接続失敗'}`;
+            }
+        } catch (e) {
+            modalTestResult.style.background = '#fee2e2';
+            modalTestResult.style.color = '#991b1b';
+            modalTestResult.textContent = `❌ 通信エラー: ${e.message}`;
+        }
+    });
+
+    // サーバー保存送信
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('serverId').value.trim();
+        const name = document.getElementById('serverName').value.trim();
+        const baseUrl = document.getElementById('serverBaseUrl').value.trim();
+        const timeoutSec = parseInt(document.getElementById('serverTimeoutSec').value, 10) || 600;
+        const description = document.getElementById('serverDesc').value.trim();
+
+        let endpoint = endpointSelect.value;
+        if (endpoint === 'custom') {
+            endpoint = endpointCustom.value.trim();
+        }
+
+        const defWidth = document.getElementById('srvDefWidth').value;
+        const defHeight = document.getElementById('srvDefHeight').value;
+        const defSteps = document.getElementById('srvDefSteps').value;
+        const defCfg = document.getElementById('srvDefCfg').value;
+        const defSampler = document.getElementById('srvDefSampler').value;
+
+        const serverDefaults = {};
+        if (defWidth) serverDefaults.width = parseInt(defWidth, 10);
+        if (defHeight) serverDefaults.height = parseInt(defHeight, 10);
+        if (defSteps) serverDefaults.steps = parseInt(defSteps, 10);
+        if (defCfg !== '') serverDefaults.cfg_scale = parseFloat(defCfg);
+        if (defSampler) serverDefaults.sampler_name = defSampler;
+
+        try {
+            const res = await fetch('/api/sdServers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'saveServer',
+                    id,
+                    name,
+                    baseUrl,
+                    endpoint,
+                    timeoutMs: timeoutSec * 1000,
+                    description,
+                    defaults: Object.keys(serverDefaults).length > 0 ? serverDefaults : null
+                })
+            });
+            const json = await res.json();
+            if (json.success) {
+                showAlert(json.message || 'サーバーを保存しました');
+                modal.style.display = 'none';
+                serverConfig = json.data;
+                renderServers();
+            } else {
+                alert(json.error || '保存に失敗しました');
+            }
+        } catch (e) {
+            alert('保存エラー: ' + e.message);
+        }
+    });
+
+    // 共通既定パラメータ保存送信
+    document.getElementById('defaultsForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const payload = {
+            action: 'saveDefaults',
+            width: parseInt(document.getElementById('defWidth').value, 10),
+            height: parseInt(document.getElementById('defHeight').value, 10),
+            steps: parseInt(document.getElementById('defSteps').value, 10),
+            cfg_scale: parseFloat(document.getElementById('defCfg').value),
+            sampler_name: document.getElementById('defSampler').value
+        };
+
+        try {
+            const res = await fetch('/api/sdServers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const json = await res.json();
+            if (json.success) {
+                showAlert(json.message || '共通既定パラメータを保存しました');
+                serverConfig = json.data;
+            } else {
+                showAlert(json.error || '保存に失敗しました', true);
+            }
+        } catch (e) {
+            showAlert('保存エラー: ' + e.message, true);
+        }
+    });
+
+    loadServers();
+</script>
+</body>
+</html>

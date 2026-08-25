@@ -377,6 +377,7 @@
     </div>
     <div>
         <a href="/generate.html?mode=new" class="btn btn-primary" style="margin-right: 8px;" title="プロンプトを初期化して新規作成を開始します">➕ 新規作成</a>
+        <a href="/sdServers.html" class="btn btn-secondary" style="margin-right: 8px;">⚙️ sd-server設定</a>
         <a href="/models.html" class="btn btn-secondary" style="margin-right: 8px;">🤖 LLM設定</a>
         <a href="/menu.html" class="btn btn-secondary">一覧へ戻る</a>
     </div>
@@ -392,6 +393,16 @@
 
         <form id="genForm">
             <input type="hidden" id="parentId" value="">
+
+            <!-- SDサーバー（モデルサーバー）選択 -->
+            <div class="form-group" id="sdServerGroup" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 12px; margin-bottom: 16px;">
+                <div class="label-row" style="margin-bottom: 4px;">
+                    <label for="sdServerSelect" style="font-weight: 600; color: #166534; margin-bottom: 0;">🎨 SDサーバー (モデル選択)</label>
+                    <span id="sdServerEndpointBadge" style="font-size: 11px; color: #15803d; font-family: monospace;"></span>
+                </div>
+                <select id="sdServerSelect" style="border-color: #86efac; background: #ffffff;"></select>
+                <div id="sdServerDesc" style="font-size: 11px; color: #166534; margin-top: 4px;"></div>
+            </div>
 
             <div class="form-group">
                 <div class="label-row">
@@ -503,6 +514,7 @@
         </div>
 
         <div id="resultMeta" class="result-meta">
+            <div class="result-meta-item" id="usedServerRow" style="display: none;">🎨 <strong>使用SDサーバー:</strong> <span id="usedServerLabel" style="color: #166534; font-weight: 600;">-</span></div>
             <div class="result-meta-item">⏱️ <strong>生成所要時間:</strong> <span id="spentTimeLabel">-</span></div>
             <div class="result-meta-item">🌱 <strong>使用シード値:</strong> <span id="usedSeedLabel">-</span></div>
             <div class="result-meta-item" id="translatedPromptRow" style="display: none;">
@@ -523,6 +535,7 @@
     let currentAbortController = null;
     let timerInterval = null;
     let serverDefaults = null;
+    let currentServers = [];
     let lastGeneratedData = null; // 最新の生成結果キャッシュ
 
     const STORAGE_KEY = 'sdServer_saved_params';
@@ -591,6 +604,7 @@
         if (editId) return;
         try {
             const params = {
+                server_id: document.getElementById('sdServerSelect')?.value,
                 prompt: document.getElementById('prompt').value,
                 negative_prompt: document.getElementById('negativePrompt').value,
                 width: parseInt(document.getElementById('width').value, 10),
@@ -619,6 +633,11 @@
 
     function applyParams(p) {
         if (!p) return;
+        if (p.server_id && document.getElementById('sdServerSelect')) {
+            document.getElementById('sdServerSelect').value = p.server_id;
+            const event = new Event('change');
+            document.getElementById('sdServerSelect').dispatchEvent(event);
+        }
         if (p.prompt !== undefined) document.getElementById('prompt').value = p.prompt;
         if (p.negative_prompt !== undefined) document.getElementById('negativePrompt').value = p.negative_prompt;
         if (p.prompt_assist !== undefined && document.getElementById('promptAssistCheck')) {
@@ -883,6 +902,78 @@
             const defs = data.defaults || {};
             serverDefaults = defs;
 
+            // SDサーバー一覧の生成
+            const sdServerGroup = document.getElementById('sdServerGroup');
+            const sdServerSelect = document.getElementById('sdServerSelect');
+            const sdServerEndpointBadge = document.getElementById('sdServerEndpointBadge');
+            const sdServerDesc = document.getElementById('sdServerDesc');
+
+            currentServers = data.servers || [];
+
+            if (currentServers.length > 0) {
+                sdServerSelect.innerHTML = '';
+                currentServers.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s.id;
+                    opt.textContent = `${s.name || s.id} (${s.baseUrl}${s.endpoint})`;
+                    opt.dataset.desc = s.description || '';
+                    opt.dataset.url = `${s.baseUrl}${s.endpoint}`;
+                    sdServerSelect.appendChild(opt);
+                });
+
+                const updateServerDetails = (autoApplyDefaults = false) => {
+                    const sel = sdServerSelect.options[sdServerSelect.selectedIndex];
+                    if (sel) {
+                        const srvId = sel.value;
+                        const srv = currentServers.find(s => s.id === srvId);
+                        sdServerEndpointBadge.textContent = sel.dataset.url || '';
+                        
+                        let desc = sel.dataset.desc || '';
+                        if (srv && srv.defaults && Object.keys(srv.defaults).length > 0) {
+                            const d = srv.defaults;
+                            const dList = [];
+                            if (d.width && d.height) dList.push(`${d.width}x${d.height}`);
+                            if (d.steps) dList.push(`${d.steps} steps`);
+                            if (d.cfg_scale !== undefined) dList.push(`CFG ${d.cfg_scale}`);
+                            if (d.sampler_name) dList.push(`${d.sampler_name}`);
+                            desc += (desc ? ' | ' : '') + `📐 固有defaults: ${dList.join(', ')}`;
+                        }
+                        sdServerDesc.textContent = desc;
+                        localStorage.setItem('sd_server_id', sel.value);
+
+                        if (autoApplyDefaults && srv && !editId) {
+                            const globalDefs = serverDefaults || {};
+                            const srvDefs = srv.defaults || {};
+                            const w = srvDefs.width || globalDefs.width || 512;
+                            const h = srvDefs.height || globalDefs.height || 512;
+                            document.getElementById('width').value = w;
+                            document.getElementById('height').value = h;
+                            syncResolutionPreset(w, h);
+                            document.getElementById('steps').value = srvDefs.steps || globalDefs.steps || 20;
+                            document.getElementById('cfgScale').value = srvDefs.cfg_scale !== undefined ? srvDefs.cfg_scale : (globalDefs.cfg_scale !== undefined ? globalDefs.cfg_scale : 7.0);
+                            if (srvDefs.sampler_name || globalDefs.sampler_name) {
+                                document.getElementById('sampler').value = srvDefs.sampler_name || globalDefs.sampler_name || 'euler_a';
+                            }
+                            saveParamsToStorage();
+                        }
+                    }
+                };
+
+                sdServerSelect.addEventListener('change', () => updateServerDetails(true));
+
+                const savedServerId = localStorage.getItem('sd_server_id') || data.activeServer || currentServers[0].id;
+                if (currentServers.some(s => s.id === savedServerId)) {
+                    sdServerSelect.value = savedServerId;
+                } else {
+                    sdServerSelect.value = currentServers[0].id;
+                }
+                updateServerDetails(false);
+
+                if (currentServers.length > 1) {
+                    sdServerGroup.style.display = 'block';
+                }
+            }
+
             // 解像度プリセット生成
             if (opts.resolutions && Array.isArray(opts.resolutions)) {
                 const resSelect = document.getElementById('resolutionPreset');
@@ -988,17 +1079,21 @@
         document.getElementById('promptTransNotice').style.display = 'none';
         document.getElementById('negTransNotice').style.display = 'none';
 
+        const currentServerId = document.getElementById('sdServerSelect')?.value;
+        const currentServer = currentServers.find(s => s.id === currentServerId);
+        const srvDefs = currentServer?.defaults || {};
         const defs = serverDefaults || {};
+
         applyParams({
             prompt: '',
             negative_prompt: '',
             prompt_assist: true,
-            width: defs.width || 512,
-            height: defs.height || 512,
-            steps: defs.steps || 20,
-            cfg_scale: defs.cfg_scale || 7.0,
+            width: srvDefs.width || defs.width || 512,
+            height: srvDefs.height || defs.height || 512,
+            steps: srvDefs.steps || defs.steps || 20,
+            cfg_scale: srvDefs.cfg_scale !== undefined ? srvDefs.cfg_scale : (defs.cfg_scale !== undefined ? defs.cfg_scale : 7.0),
             seed: defs.seed !== undefined ? defs.seed : -1,
-            sampler_name: defs.sampler_name || 'euler_a'
+            sampler_name: srvDefs.sampler_name || defs.sampler_name || 'euler_a'
         });
     });
 
@@ -1172,6 +1267,7 @@
 
         const isAssist = document.getElementById('promptAssistCheck')?.checked ?? true;
         const payload = {
+            serverId: document.getElementById('sdServerSelect')?.value || null,
             prompt: document.getElementById('prompt').value.trim(),
             negative_prompt: document.getElementById('negativePrompt').value.trim(),
             promptMode: isAssist ? 'assist' : 'direct',
@@ -1222,6 +1318,15 @@
             const finalSec = data.durationSec || ((Date.now() - startTimestamp) / 1000).toFixed(2);
             spentTimeLabel.textContent = `${finalSec} 秒`;
             usedSeedLabel.textContent = data.seed !== undefined ? data.seed : '-';
+
+            const usedServerRow = document.getElementById('usedServerRow');
+            const usedServerLabel = document.getElementById('usedServerLabel');
+            if (data.serverInfo && usedServerRow && usedServerLabel) {
+                usedServerLabel.textContent = data.serverInfo.name || data.serverInfo.id;
+                usedServerRow.style.display = 'block';
+            } else if (usedServerRow) {
+                usedServerRow.style.display = 'none';
+            }
             
             const trans = data.translated && data.translated.prompt;
             if (trans) {

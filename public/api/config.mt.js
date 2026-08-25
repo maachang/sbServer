@@ -4,6 +4,8 @@
  */
 exports.handler = async function() {
     const conf = $loadConf('sdServer') || {};
+    const llmConf = $loadConf('localLlm') || conf.llm || {};
+    const sdClient = $loadLib('sdClient.js');
     const translator = $loadLib('translator.js');
 
     let activeModelName = 'ローカルLLM';
@@ -17,8 +19,13 @@ exports.handler = async function() {
         }
     }
 
+    const servers = sdClient && sdClient.getServerList ? sdClient.getServerList() : (conf.servers || []);
+    const activeServer = conf.activeServer || (servers[0] ? servers[0].id : 'default');
+
     return {
         success: true,
+        servers: servers,
+        activeServer: activeServer,
         defaults: conf.defaults || {
             width: 512,
             height: 512,
@@ -29,7 +36,7 @@ exports.handler = async function() {
         },
         options: conf.options || {},
         llm: {
-            activeModel: conf.llm?.activeModel || 'onnx-community/Qwen2.5-1.5B-Instruct',
+            activeModel: llmConf.activeModel || 'onnx-community/Qwen2.5-1.5B-Instruct',
             activeModelName: activeModelName
         }
     };
