@@ -1,63 +1,60 @@
 # sdServer
 
-`sdServer` は、Stable Diffusion サーバー（例: `stable-diffusion.cpp` などの OpenAI 互換 `/v1/images/generations` エンドポイントを持つサーバー）と連携し、Webブラウザから直感的に画像生成・履歴管理・再生成・LLMモデル管理を行える Web アプリケーションです。
+`sdServer` は、ローカルやリモートの Stable Diffusion サーバー（`stable-diffusion.cpp` 等）と連携し、Web ブラウザから直感的に画像生成・履歴管理・AIプロンプト最適化・複数サーバー管理を行える Web アプリケーションです。
 
-軽量 Web フレームワーク「maachang」ベースで構築されています。
+軽量 Web フレームワーク「**maachang**」（Bun / Node.js 実行環境）ベースで構築されています。
 
 ---
 
 ## 🌟 主な機能
 
-### 1. 画像生成インターフェース (`/generate.html`)
-- **プロンプト入力 & ✨ AIプロンプト自動最適化（アシスト機能）**:
-  - プロンプト (Prompt) およびネガティブプロンプト (Negative Prompt) の日本語入力対応。
-  - **✨ AI最適化ボタン**: 日本語の曖昧な入力や意図（例: 「危険で恐ろしい魔剣を表現して」）から、Stable Diffusion が誤認しないよう「アイテム単体（`item focus, solo, no humans`）」「構図」「品質タグ」を展開し、推奨ネガティブプロンプトを自動生成・入力欄に展開。
-  - **自動アシストトグル**: ON の場合、生成時にバックエンドで自動的に AI アシスト最適化を適用。OFF にすると忠実な英語直訳モードとして動作。
+### 1. 🖼️ 画像生成インターフェース (`/generate.html`)
+- **複数 SD サーバー切り替え & 固有 defaults 適用**:
+  - 生成画面上部のセレクトボックスから、目的の SD サーバー（例: `[低速] 画像汎用` / `[高速] アニメ調`）を即時選択。
+  - 各サーバーに設定された固有の推奨解像度・ステップ数・CFGスケール・サンプラーが自動的に初期値として反映されます。
+- **モデル系統別 ✨ AI プロンプト自動最適化（アシスト機能）**:
+  - 選択されたサーバーのモデル系統（`SD 1.5系` / `SDXL系` / `自然言語型`）を自動判別し、同一の日本語入力からモデル特性に最適なプロンプト形式へ自動展開。
+  - **🏷️ SD 1.5系**: Danbooruタグ＋品質強調タグ＋ネガティブタグを自動生成
+  - **⚡ SDXL系**: `score_9, score_8_up` 等のクオリティスコア＋シチュエーション文を生成
+  - **🧠 自然言語型**: DiT / FLUX / Qwen-Image 向けに、主語・情景・ライティングを詳細に記述した自然な英文段落を生成（不要なネガティブタグは排除）
   - **🌐 翻訳プレビュー**: 事前に英語直訳結果を確認可能。
-- **入力パラメータの自動保持 & リセット**:
-  - プロンプトや生成設定（解像度・Steps・CFG・Sampler・Seed・アシストトグル状態）をブラウザ（LocalStorage）に自動保存。
-  - 「🔄 既定値に戻す」ボタンで初期デフォルト設定へ一発クリア可能。
+- **非同期タスク ＆ リアルタイム経過タイマー**:
+  - バックエンドでの非同期タスク管理と軽量ポーリング（1秒間隔）により、5分〜10分かかる長大生成でもネットワークタイムアウトなく安定動作。
+- **生成中の画面遷移保護 & キャンセル**:
+  - 生成中に画面を移動しようとすると警告ダイアログを表示。
+  - 「生成中止」やページ離脱時は、SD サーバーへ即座に中断シグナル（`/sdcpp/v1/jobs/{id}/cancel`）を発行。
 - **生成完了時の保存確認**:
-  - 生成完了時にモーダルが表示され、「💾 保存する」「🗑️ 保存しない」を選択可能。
-  - 「保存しない」を選んだ場合はサーバーディスク（`uploads/`）や DB にゴミデータを残さず、画面上の一時プレビュー＆ダウンロードのみ行えます（後から手動保存も可能）。
-- **リアルタイム生成タイマー & キャンセル**:
-  - 生成進行中の経過秒数計測および、処理の中断（キャンセル）リクエスト対応。
+  - 生成完了時にモーダルが表示され、「💾 保存する」「🗑️ 保存しない（破棄）」を選択可能。
 
-### 2. Transformers.js + ローカルLLM による高速翻訳 & AIプロンプトアシスト
-- **純粋な Node.js (JavaScript) 完結**:
-  - Python や外部プロセス不要で、同一 Node.js プロセス内に ONNX モデルを常駐。
-- **デフォルトモデル**: `onnx-community/Qwen2.5-1.5B-Instruct` (Q4量子化)
-- **モデル選定基準（1B〜3B Instruct モデル推奨）**:
-  - 単なる単語直訳ではなく、JSON 形式でのタグ最適化や構図・ネガティブプロンプトの指示追従（Instruct）を行うため、**1B〜3B クラスのモデル（Qwen 2.5 1.5B / 3B など）** を標準採用。
-  - 0.5B 以下（270M, 0.5B）の超極小モデルに見られる誤訳や指示崩れ（ハルシネーション）を防止。
-- **推論OFF（決定論的・高速出力）**:
-  - `do_sample: false` (Greedy Search) により、安定かつ高速なプロンプト生成を実現。
+---
 
-### 3. LLM モデル管理・動的切り替え & キャッシュ管理 (`/models.html`)
-- **モデルの選択・ロード・メモリ常駐**:
-  - 画面上からワンクリックで翻訳・アシスト用モデルの切り替え・メモリ常駐化。
-- **リアルタイムダウンロード進捗表示**:
-  - 未ダウンロードのモデルを選択した場合、ダウンロード中のファイル名・進捗率（0%〜100%）・プログレスバーをリアルタイム表示。
-- **ダウンロード済みキャッシュの容量表示 & 個別削除**:
-  - 各モデルがディスク上で占有しているファイル容量（例: `1.7 GB`）を表示。
-  - 「💾 キャッシュ削除」ボタンで設定は残したまま実体ファイルのみを削除し、ディスク容量を即座に解放可能。
-- **モデル項目の削除（設定一覧からの削除）**:
-  - 不要になったモデル定義を一覧から削除（キャッシュファイルも同時に削除するか選択可能）。
-- **未登録のダウンロード済みキャッシュの自動検出 & 解放**:
-  - 設定一覧から外れたもののディスク上に残っている過去のキャッシュファイルを検出し、「➕ 一覧に再追加」または「🗑️ キャッシュ完全消去」が可能。
-- **状態バッジ表示**:
-  - `⚡ メモリ常駐中`、`✔ 設定選択中`、`💾 ダウンロード済 (容量)`、`☁️ 未ダウンロード` を明確に可視化。
-- **新規 HuggingFace ONNX モデルの自由追加**:
-  - 任意の Hugging Face Transformers.js 互換 ONNX モデル（Qwen 2.5 1.5B/3B, Gemma 3 1B, LFM2.5 など）をフォームから登録可能。
+### 2. 🖥️ 複数 SD サーバー管理 (`/sdServers.html`)
+- **Web 画面でのサーバー追加・編集・削除**:
+  - サーバー表示名、識別 ID、Base URL、エンドポイント種別、タイムアウト秒数、説明メモを自由に追加・管理。
+- **モデル系統 (Model Architecture) 設定**:
+  - `🏷️ SD 1.5系 (タグ羅列型)` / `⚡ SDXL系 (ハイブリッド型)` / `🧠 自然言語型 (DiT/FLUX/Qwen-Image)` を指定。
+- **サーバー専用 defaults パラメータ設定**:
+  - サーバーごとに最適な幅・高さ・ステップ数・CFG・サンプラーを個別定義。
+- **リアルタイム接続テスト**:
+  - 画面上から「⚡ 接続テスト」ボタンで即座に通信確認が可能。
 
-### 4. 生成履歴・ギャラリー (`/menu.html`)
+---
+
+### 3. 🧠 ローカル LLM 管理・動的切替 (`/models.html`)
+- **Transformers.js (ONNX) 完全ローカル動作**:
+  - 外部プロセスや Python 不要で、同一 Node.js / Bun プロセス内に LLM（Qwen 2.5 1.5B/3B, Gemma 3 1B 等）を常駐。
+- **ダウンロード進捗表示 & ディスクキャッシュ容量管理**:
+  - モデルダウンロード中の進捗率をプログレスバーでリアルタイム表示。
+  - ディスクキャッシュ容量の確認・ワンクリック削除機能。
+
+---
+
+### 4. 📚 生成履歴・ギャラリー (`/menu.html`)
 - **画像一覧グリッド & ページネーション**:
-  - 保存された画像一覧を最新順で表示。
-  - 日本語プロンプトをそのまま保持・表示（英訳・最適化プロンプトもサブ表示）。
-- **検索 & 詳細モーダル**:
-  - キーワード検索（プロンプト・ネガティブ・英訳対応）。
-  - 詳細モーダルからの「✏️ この設定をコピーして生成画面を開く」連携。
-  - 不要になった画像の削除機能（ファイルとDBレコードを完全削除）。
+  - 保存された画像を最新順で表示。日本語プロンプト・英訳・生成パラメータ・**「生成時の利用サーバー」** を記録・表示。
+- **検索 & 再編集連携**:
+  - プロンプトのキーワード検索。
+  - 詳細モーダルの「✏️ この設定をコピーして生成画面を開く」から、当時のパラメータと利用サーバーをそのまま復元して再生成。
 
 ---
 
@@ -67,88 +64,40 @@
 sdServer/
 ├── conf/                     # 設定ファイル
 │   ├── env.json              # 共通環境設定
-│   ├── sdServer.json         # SD サーバー連携 & LLM モデル定義設定
-│   ├── server.json           # HTTP サーバー設定（ポート・ホスト）
-│   └── session.json          # セッション設定
+│   ├── localLlm.json         # ローカル LLM 設定
+│   ├── sdServer.json         # SD サーバー定義・共通defaults・モデル系統設定
+│   └── server.json           # HTTP サーバー設定 (ポート 3000)
 ├── lib/                      # サーバーサイド共通ライブラリ
-│   ├── imageModel.js         # SQLite を用いた images テーブルの CRUD 処理
-│   ├── sdClient.js           # SD サーバー通信・生成・画像保存処理
-│   └── translator.js         # Transformers.js 常駐・動的切替・進捗追跡・直訳 & AIアシストモジュール
+│   ├── imageModel.js         # SQLite を用いた images テーブルの CRUD & 自動補完
+│   ├── sdClient.js           # SD サーバー通信 (/sdcpp/v1 非同期ジョブ & 中断)
+│   ├── translator.js         # Transformers.js 常駐・モデル系統別 AI アシスト
+│   └── validate.js           # バリデーションユーティリティ
 ├── public/                   # 静的ファイルおよび Web エンドポイント (.mt.js)
 │   ├── api/
-│   │   ├── assist.mt.js      # POST /api/assist (SD向けAIプロンプト最適化・ネガティブ生成)
-│   │   ├── config.mt.js      # GET /api/config (設定値・現在モデル名・UI選択肢取得)
-│   │   ├── delete.mt.js      # POST /api/delete (画像削除)
-│   │   ├── generate.mt.js    # POST /api/generate (画像生成実行・AIアシスト/自動翻訳連携)
-│   │   ├── image.mt.js       # GET /api/image (単一画像詳細取得)
-│   │   ├── images.mt.js      # GET /api/images (画像一覧・検索取得)
-│   │   ├── models.mt.js      # GET/POST /api/models (モデル一覧・進捗・切替・追加・削除)
-│   │   ├── save.mt.js        # POST /api/save (画像ファイル・DB永続保存)
-│   │   └── translate.mt.js   # POST /api/translate (プロンプト直訳API)
+│   │   ├── assist.mt.js      # POST /api/assist (モデル系統連動 AI プロンプト最適化)
+│   │   ├── config.mt.js      # GET /api/config (設定情報取得)
+│   │   ├── delete.mt.js      # POST /api/delete (画像・DB削除)
+│   │   ├── generate.mt.js    # POST/GET /api/generate (非同期生成タスク & ポーリング & キャンセル)
+│   │   ├── image.mt.js       # GET /api/image (画像詳細取得)
+│   │   ├── images.mt.js      # GET /api/images (画像一覧・検索)
+│   │   ├── models.mt.js      # GET/POST /api/models (LLM 切替・進捗・キャッシュ管理)
+│   │   ├── save.mt.js        # POST /api/save (画像ファイル・DB保存)
+│   │   ├── sdServers.mt.js   # GET/POST /api/sdServers (SD サーバー CRUD & 接続テスト)
+│   │   └── translate.mt.js   # POST /api/translate (直訳 API)
 │   ├── uploads/              # 生成された画像ファイル保存先 (.png)
 │   ├── generate.html         # 画像生成画面
-│   ├── index.html            # ルートリダイレクト画面 (/menu.html へ転送)
 │   ├── menu.html             # 生成履歴・ギャラリー画面
-│   └── models.html           # LLM モデル管理画面
+│   ├── models.html           # LLM モデル管理画面
+│   ├── sdServers.html        # SD サーバー設定画面
+│   └── index.html            # ルートリダイレクト (/menu.html へ転送)
 ├── schema/                   # DB スキーマ定義
 │   └── images.sql            # images テーブル DDL
 ├── validates/                # 入力値バリデーション定義
 │   └── image.js              # 画像生成リクエストスキーマ
+├── .claude/
+│   └── CLAUDE.md             # 開発・アーキテクチャ詳細ガイド
 ├── package.json
 └── README.md
-```
-
----
-
-## ⚙️ 設定例 (`conf/sdServer.json`)
-
-```json
-{
-  "baseUrl": "http://192.168.0.229:8080",
-  "endpoint": "/v1/images/generations",
-  "timeoutMs": 600000,
-  "defaults": {
-    "width": 512,
-    "height": 512,
-    "steps": 20,
-    "cfg_scale": 7.0,
-    "sampler_name": "euler_a",
-    "seed": -1
-  },
-  "llm": {
-    "activeModel": "onnx-community/Qwen2.5-1.5B-Instruct",
-    "models": [
-      {
-        "id": "onnx-community/Qwen2.5-1.5B-Instruct",
-        "name": "Qwen 2.5 1.5B Instruct (ONNX Q4)",
-        "description": "高精度な翻訳とプロンプト最適化・ネガティブ補完を両立した推奨モデル（デフォルト）",
-        "dtype": "q4",
-        "task": "text-generation"
-      },
-      {
-        "id": "onnx-community/Qwen2.5-3B-Instruct",
-        "name": "Qwen 2.5 3B Instruct (ONNX Q4)",
-        "description": "より高度な表現力と複雑なプロンプト展開に対応した高品質モデル",
-        "dtype": "q4",
-        "task": "text-generation"
-      },
-      {
-        "id": "onnx-community/gemma-3-1b-it-ONNX",
-        "name": "Gemma 3 1B IT (ONNX Q4)",
-        "description": "バランスの取れた Google Gemma 3 (1B) モデル",
-        "dtype": "q4",
-        "task": "text-generation"
-      },
-      {
-        "id": "LiquidAI/LFM2.5-1.2B-JP-ONNX",
-        "name": "LFM2.5 1.2B JP (ONNX Q4)",
-        "description": "日本語ニュアンスの解釈に優れた軽量モデル",
-        "dtype": "q4",
-        "task": "text-generation"
-      }
-    ]
-  }
-}
 ```
 
 ---
@@ -156,11 +105,14 @@ sdServer/
 ## 🚀 起動方法
 
 ```bash
-npm start
+# サーバー起動 (maachang / Bun)
+bun run /home/maachang/project/maachang/src/index.js
 # または
-maachang
+npm start
 ```
 
-- **画像ギャラリー / 一覧画面**: `http://localhost:3000/menu.html`
-- **画像生成画面**: `http://localhost:3000/generate.html`
-- **LLM モデル設定画面**: `http://localhost:3000/models.html`
+### 🌐 アクセス URL
+- **画像履歴・ギャラリー**: [http://localhost:3000/menu.html](http://localhost:3000/menu.html)
+- **画像生成**: [http://localhost:3000/generate.html](http://localhost:3000/generate.html)
+- **SD サーバー設定**: [http://localhost:3000/sdServers.html](http://localhost:3000/sdServers.html)
+- **LLM モデル設定**: [http://localhost:3000/models.html](http://localhost:3000/models.html)
