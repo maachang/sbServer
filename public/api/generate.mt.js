@@ -28,9 +28,35 @@ exports.handler = async function() {
     const translator = $loadLib('translator.js');
 
     const method = $request.method;
-    const body = $request.body || {};
+    let body = $request.body || {};
+    if (typeof body === 'string') {
+        try {
+            body = JSON.parse(body);
+        } catch (e) {
+            body = {};
+        }
+    }
     const taskId = $request.getQuery('taskId', '') || body.taskId || '';
     const action = $request.getQuery('action', '') || body.action || '';
+
+    // キャンセル要求 (POST または GET)
+    if (action === 'cancel' || body.action === 'cancel') {
+        console.log(`[generate.mt.js] Cancel request received for taskId: ${taskId}`);
+        if (taskId) {
+            const task = global.__sdTasks.get(taskId);
+            if (task && task.status === 'running') {
+                task.status = 'failed';
+                task.error = 'ユーザーによって生成がキャンセルされました';
+                try {
+                    task.abortController.abort(new Error('CLIENT_ABORTED'));
+                } catch (e) {}
+                if (task.serverBaseUrl) {
+                    sdClient.sendCancelSignal(task.serverBaseUrl).catch(() => {});
+                }
+            }
+        }
+        return { success: true, message: 'キャンセル処理を実行しました' };
+    }
 
     // GET /api/generate?taskId=... (ステータス確認)
     if (method === 'GET' && taskId) {
@@ -70,21 +96,6 @@ exports.handler = async function() {
         }
     }
 
-    // POST /api/generate キャンセル要求
-    if (method === 'POST' && (action === 'cancel' || body.action === 'cancel')) {
-        if (taskId) {
-            const task = global.__sdTasks.get(taskId);
-            if (task && task.status === 'running') {
-                task.status = 'failed';
-                task.error = 'ユーザーによって生成がキャンセルされました';
-                try {
-                    task.abortController.abort();
-                } catch (e) {}
-            }
-        }
-        return { success: true, message: 'キャンセル処理を実行しました' };
-    }
-
     if (method !== 'POST') {
         $response.status(405);
         return { success: false, error: 'Method Not Allowed' };
@@ -109,12 +120,14 @@ exports.handler = async function() {
     // 新規タスクの作成
     const newTaskId = `task_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const abortController = new AbortController();
+    const targetServer = sdClient.resolveServer(body.serverId || body.server_id);
 
     const task = {
         id: newTaskId,
         status: 'running',
         createdTime: Date.now(),
         startTime: Date.now(),
+        serverBaseUrl: targetServer ? targetServer.baseUrl : null,
         abortController,
         result: null,
         error: null

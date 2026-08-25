@@ -408,8 +408,8 @@
                 <div class="label-row">
                     <label for="prompt">プロンプト (Prompt / 日本語入力可) <span style="color:red">*</span></label>
                     <div style="display: flex; gap: 6px;">
-                        <button type="button" class="btn-xs" id="assistPromptBtn" title="入力した日本語から Stable Diffusion 向けにタグや構図をAI自動最適化・展開したプレビューを確認します" style="background: #fdf2f8; color: #db2777; border-color: #f472b6; font-weight: 600;">✨ AI最適化プレビュー</button>
-                        <button type="button" class="btn-xs" id="translatePromptBtn" title="入力した日本語の英語翻訳プレビューを確認します">🌐 翻訳プレビュー</button>
+                        <button type="button" class="btn-xs" id="assistPromptBtn" title="入力した日本語から Stable Diffusion 向けにタグや構図をAI自動最適化・展開したプレビューを確認します" style="background: #fdf2f8; color: #db2777; border-color: #f472b6; font-weight: 600;">✨ AI最適化<br>プレビュー</button>
+                        <button type="button" class="btn-xs" id="translatePromptBtn" title="入力した日本語の英語翻訳プレビューを確認します">🌐 翻訳<br>プレビュー</button>
                     </div>
                 </div>
                 <textarea id="prompt" placeholder="日本語・英語どちらでも入力可能（例: 危険で恐ろしい魔剣を表現して / 桜並木を歩く女子高生 / 1girl, cute）" required></textarea>
@@ -429,7 +429,7 @@
             <div class="form-group" style="background: #fdf4ff; border: 1px solid #f0abfc; border-radius: 6px; padding: 10px 12px; margin-bottom: 16px;">
                 <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 0; font-size: 13px; font-weight: 600; color: #86198f;">
                     <input type="checkbox" id="promptAssistCheck" checked style="margin-right: 8px; width: 16px; height: 16px; accent-color: #c026d3; cursor: pointer;">
-                    <span>✨ AIプロンプト自動アシスト (生成時に単体アイテム・構図・ネガティブを自動最適化)</span>
+                    <span>✨ AIプロンプト自動アシスト</span>
                 </label>
                 <div style="font-size: 11px; color: #a21caf; margin-left: 24px; margin-top: 2px;">
                     ※ ONの場合、日本語入力から「アイテム単体」「構図タグ」「人物除外ネガティブ」等をSD向けに賢く補完して生成します。
@@ -1126,11 +1126,70 @@
         document.getElementById('emptyPreview').style.display = 'block';
     });
 
-    window.addEventListener('beforeunload', () => {
+    // 画面遷移・離脱時の確認ダイアログ
+    document.addEventListener('click', (e) => {
+        const link = e.target.closest('a');
+        if (!link || !link.href) return;
+        // ダウンロードリンクやページ内アンカー、スクリプト実行リンクは除外
+        const href = link.getAttribute('href') || '';
+        if (link.id === 'downloadBtn' || href.startsWith('#') || href.startsWith('javascript:')) return;
+
         if (currentTaskId) {
-            navigator.sendBeacon('/api/generate', JSON.stringify({ action: 'cancel', taskId: currentTaskId }));
+            const ok = confirm('現在、画像を生成中です。\n他の画面へ移動すると生成処理が中断されますが、よろしいですか？');
+            if (!ok) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+
+            // ユーザーが移動を承認した場合はバックグラウンドタスクをキャンセル
+            const taskIdToCancel = currentTaskId;
+            currentTaskId = null;
+
+            try {
+                fetch('/api/generate?action=cancel&taskId=' + encodeURIComponent(taskIdToCancel), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'cancel', taskId: taskIdToCancel }),
+                    keepalive: true
+                }).catch(() => {});
+            } catch (err) {}
+
+            try {
+                const blob = new Blob([JSON.stringify({ action: 'cancel', taskId: taskIdToCancel })], { type: 'application/json' });
+                navigator.sendBeacon('/api/generate?action=cancel&taskId=' + encodeURIComponent(taskIdToCancel), blob);
+            } catch (err) {}
+        }
+    }, true);
+
+    const handleUnloadCancel = () => {
+        if (currentTaskId) {
+            const taskIdToCancel = currentTaskId;
+            try {
+                fetch('/api/generate?action=cancel&taskId=' + encodeURIComponent(taskIdToCancel), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'cancel', taskId: taskIdToCancel }),
+                    keepalive: true
+                }).catch(() => {});
+            } catch (err) {}
+            try {
+                const blob = new Blob([JSON.stringify({ action: 'cancel', taskId: taskIdToCancel })], { type: 'application/json' });
+                navigator.sendBeacon('/api/generate?action=cancel&taskId=' + encodeURIComponent(taskIdToCancel), blob);
+            } catch (err) {}
+        }
+    };
+
+    window.addEventListener('beforeunload', (e) => {
+        if (currentTaskId) {
+            handleUnloadCancel();
+            e.preventDefault();
+            e.returnValue = '画像生成中です。このページを離れると生成処理が中断されます。';
+            return e.returnValue;
         }
     });
+
+    window.addEventListener('pagehide', handleUnloadCancel);
 
     // サーバーへ画像保存リクエスト
     async function saveImageToServer() {
