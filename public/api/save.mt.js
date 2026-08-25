@@ -41,6 +41,8 @@ exports.handler = async function() {
                 seed: body.seed !== undefined ? body.seed : -1,
                 sampler_name: body.sampler_name || 'euler_a',
                 image_path: imagePath,
+                server_id: body.server_id || body.serverId,
+                server_name: body.server_name || body.serverName,
                 generation_time_ms: body.generation_time_ms || 0
             });
             recordId = parsedId;
@@ -59,6 +61,8 @@ exports.handler = async function() {
                 sampler_name: body.sampler_name || 'euler_a',
                 image_path: imagePath,
                 parent_id: body.parent_id || null,
+                server_id: body.server_id || body.serverId,
+                server_name: body.server_name || body.serverName,
                 generation_time_ms: body.generation_time_ms || 0
             });
         }

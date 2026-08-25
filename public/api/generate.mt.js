@@ -96,6 +96,8 @@ exports.handler = async function() {
                 sampler_name: params.sampler_name,
                 image_path: imagePath,
                 parent_id: params.parent_id,
+                server_id: genResult.serverInfo?.id || params.serverId || params.server_id,
+                server_name: genResult.serverInfo?.name || '',
                 generation_time_ms: durationMs
             });
             createdItem = imageModel.getImageById(recordId);
@@ -127,6 +129,8 @@ exports.handler = async function() {
                 seed: finalSeed,
                 sampler_name: params.sampler_name,
                 parent_id: params.parent_id,
+                server_id: genResult.serverInfo?.id || params.serverId || params.server_id,
+                server_name: genResult.serverInfo?.name || '',
                 generation_time_ms: durationMs
             }
         };

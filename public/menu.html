@@ -452,6 +452,13 @@
                     subPromptHtml = `<div class="card-sub-prompt" title="英訳: ${escapeHtml(item.translated_prompt)}">🌐 ${escapeHtml(item.translated_prompt)}</div>`;
                 }
 
+                // サーバー情報のバッジ
+                let serverBadge = '';
+                if (item.server_name || item.server_id) {
+                    const sName = item.server_name || item.server_id;
+                    serverBadge = `<span class="badge" style="background: #e0f2fe; color: #0369a1; border-color: #bae6fd;" title="生成時サーバー: ${escapeHtml(sName)}">🎨 ${escapeHtml(sName)}</span>`;
+                }
+
                 card.innerHTML = `
                     <div class="card-img-wrap">
                         <img src="${item.image_path}" alt="generated" class="card-img" onclick="openModal('${item.image_path}')" loading="lazy" />
@@ -460,6 +467,7 @@
                         <div class="card-prompt" title="${escapeHtml(item.prompt)}">${escapeHtml(item.prompt)}</div>
                         ${subPromptHtml}
                         <div class="card-meta">
+                            ${serverBadge}
                             <span class="badge">${item.width}x${item.height}</span>
                             <span class="badge">Steps: ${item.steps}</span>
                             <span class="badge">CFG: ${item.cfg_scale}</span>

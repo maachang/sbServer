@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS images (
     sampler_name TEXT DEFAULT 'euler_a',
     image_path TEXT NOT NULL,
     parent_id INTEGER DEFAULT NULL,
+    server_id TEXT DEFAULT '',
+    server_name TEXT DEFAULT '',
     generation_time_ms INTEGER DEFAULT 0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL

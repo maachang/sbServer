@@ -1121,6 +1121,40 @@
                         document.getElementById('resultActions').style.display = 'flex';
                     }
 
+                    // 利用サーバー情報の復元
+                    const srvSelect = document.getElementById('sdServerSelect');
+                    const targetServerId = item.server_id || (currentServers[0] ? currentServers[0].id : '');
+                    if (srvSelect) {
+                        if (Array.from(srvSelect.options).some(o => o.value === targetServerId)) {
+                            srvSelect.value = targetServerId;
+                        } else if (currentServers[0]) {
+                            srvSelect.value = currentServers[0].id;
+                        }
+                        const badge = document.getElementById('sdServerEndpointBadge');
+                        const desc = document.getElementById('sdServerDesc');
+                        const sel = srvSelect.options[srvSelect.selectedIndex];
+                        if (badge && sel) badge.textContent = sel.dataset.url || '';
+                        if (desc && sel) desc.textContent = sel.dataset.desc || '';
+                    }
+
+                    // 右ペインメタ情報欄の表示
+                    const usedServerRow = document.getElementById('usedServerRow');
+                    const usedServerLabel = document.getElementById('usedServerLabel');
+                    const foundServer = currentServers.find(s => s.id === targetServerId);
+                    const displayServerName = item.server_name || foundServer?.name || targetServerId || 'デフォルト SD サーバー';
+                    if (usedServerRow && usedServerLabel) {
+                        usedServerLabel.textContent = displayServerName;
+                        usedServerRow.style.display = 'block';
+                    }
+
+                    if (item.seed !== undefined) {
+                        document.getElementById('usedSeedLabel').textContent = item.seed;
+                    }
+                    if (item.generation_time_ms) {
+                        document.getElementById('spentTimeLabel').textContent = `${(item.generation_time_ms / 1000).toFixed(2)} 秒`;
+                    }
+                    document.getElementById('resultMeta').style.display = 'block';
+
                     if (item.translated_prompt) {
                         const notice = document.getElementById('promptTransNotice');
                         notice.style.display = 'block';
@@ -1152,6 +1186,9 @@
         if (!lastGeneratedData || !lastGeneratedData.base64Data) return;
 
         const meta = lastGeneratedData.meta || {};
+        const currentServerId = document.getElementById('sdServerSelect')?.value || '';
+        const currentServer = currentServers.find(s => s.id === currentServerId);
+
         const payload = {
             id: editId ? parseInt(editId, 10) : null,
             base64Data: lastGeneratedData.base64Data,
@@ -1166,6 +1203,8 @@
             seed: meta.seed,
             sampler_name: meta.sampler_name,
             parent_id: meta.parent_id,
+            server_id: meta.server_id || currentServerId,
+            server_name: meta.server_name || currentServer?.name || '',
             generation_time_ms: meta.generation_time_ms
         };
 
