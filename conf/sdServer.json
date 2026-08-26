@@ -1,5 +1,5 @@
 {
-  "activeServer": "server-1",
+  "activeServer": "z-image",
   "servers": [
     {
       "id": "server-1",
@@ -21,6 +21,19 @@
       "endpoint": "/sdapi/v1/txt2img",
       "timeoutMs": 600000,
       "description": "アニメ画像など"
+    },
+    {
+      "id": "z-image",
+      "name": "z-image",
+      "modelType": "natural",
+      "baseUrl": "http://192.168.0.231:8080",
+      "endpoint": "/sdapi/v1/txt2img",
+      "timeoutMs": 600000,
+      "description": "z-imageで実施",
+      "defaults": {
+        "steps": 8,
+        "cfg_scale": 1
+      }
     }
   ],
   "baseUrl": "http://192.168.0.233:8080",

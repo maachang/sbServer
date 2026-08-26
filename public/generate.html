@@ -538,6 +538,25 @@
         }
     }
 
+    // サーバー固有のデフォルト設定を適用（解像度とプロンプトは維持）
+    function applyServerDefaultsExceptResolution(srv) {
+        if (!srv) return;
+        const srvDefs = srv.defaults || {};
+        const defs = serverDefaults || {};
+
+        if (srvDefs.steps !== undefined || defs.steps !== undefined) {
+            document.getElementById('steps').value = srvDefs.steps || defs.steps || 20;
+        }
+        if (srvDefs.cfg_scale !== undefined || defs.cfg_scale !== undefined) {
+            document.getElementById('cfgScale').value = srvDefs.cfg_scale !== undefined ? srvDefs.cfg_scale : (defs.cfg_scale !== undefined ? defs.cfg_scale : 7.0);
+        }
+        if (srvDefs.sampler_name || defs.sampler_name) {
+            if (document.getElementById('sampler')) {
+                document.getElementById('sampler').value = srvDefs.sampler_name || defs.sampler_name || 'euler_a';
+            }
+        }
+    }
+
     function applyParams(p) {
         if (!p) return;
         if (p.prompt !== undefined) document.getElementById('prompt').value = p.prompt;
@@ -865,8 +884,16 @@
                         sdServerDesc.textContent = desc;
                         localStorage.setItem('sd_server_id', sel.value);
 
-                        if (autoApplyDefaults && srv && !editId) {
-                            applyDefaultParams();
+                        if (autoApplyDefaults && srv) {
+                            if (!editId) {
+                                applyDefaultParams();
+                            } else {
+                                const serverName = srv.name || srv.id;
+                                const confirmMsg = `画像生成サーバーを「${serverName}」に変更しました。\nこのサーバーの推奨設定（ステップ数・CFGスケール・サンプラー等）を適用しますか？\n\n※「OK」を選択すると、解像度（幅・高さ）やプロンプトを維持したまま、サーバー固有の生成パラメータを置き換えます。\n※「キャンセル」を選択すると、現在の設定値を維持します。`;
+                                if (confirm(confirmMsg)) {
+                                    applyServerDefaultsExceptResolution(srv);
+                                }
+                            }
                         }
                     }
                 };
