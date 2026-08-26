@@ -42,11 +42,32 @@
             margin-bottom: 16px;
             padding: 0 4px;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 12px;
+        }
+        #resultCount {
+            white-space: nowrap;
+            font-weight: 500;
+            color: #334155;
+            flex-shrink: 0;
+        }
+        .stats-controls {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: nowrap;
+        }
+        .stats-label {
+            font-size: 13px;
+            color: #64748b;
+            white-space: nowrap;
+            display: inline-block;
+            margin: 0;
+            line-height: 1;
+            flex-shrink: 0;
         }
 
         .per-page-select {
-            padding: 6px 10px;
+            padding: 5px 8px;
             border: 1px solid #d1d5db;
             border-radius: 6px;
             font-size: 13px;
@@ -54,13 +75,91 @@
             color: #374151;
             outline: none;
             cursor: pointer;
+            white-space: nowrap;
         }
 
-        /* グリッドレイアウト */
+        /* 表示サイズ切り替えボタングループ */
+        .view-size-group {
+            display: inline-flex;
+            background: #e2e8f0;
+            padding: 2px;
+            border-radius: 6px;
+            gap: 2px;
+        }
+        .view-size-btn {
+            border: none;
+            background: transparent;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 4px;
+            color: #475569;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .view-size-btn:hover {
+            color: #0f172a;
+            background: rgba(255, 255, 255, 0.6);
+        }
+        .view-size-btn.active {
+            background: #ffffff;
+            color: #2563eb;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+        }
+
+        /* グリッドレイアウト (中: デフォルト) */
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 16px;
+        }
+
+        /* 大サイズ */
+        .grid.grid-lg {
+            grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+            gap: 24px;
+        }
+        .grid.grid-lg .card-prompt {
+            font-size: 14px;
+            -webkit-line-clamp: 3;
+        }
+        .grid.grid-lg .card-sub-prompt {
+            font-size: 12px;
+            -webkit-line-clamp: 3;
+        }
+
+        /* 小サイズ (コンパクト) */
+        .grid.grid-sm {
+            grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
+            gap: 10px;
+        }
+        .grid.grid-sm .card-body {
+            padding: 8px 10px;
+        }
+        .grid.grid-sm .card-prompt {
+            font-size: 12px;
+            -webkit-line-clamp: 1;
+            margin-bottom: 2px;
+        }
+        .grid.grid-sm .card-sub-prompt {
+            display: none;
+        }
+        .grid.grid-sm .card-meta {
+            gap: 4px;
+            margin-bottom: 6px;
+            font-size: 10px;
+        }
+        .grid.grid-sm .card-meta .badge {
+            padding: 1px 4px;
+            font-size: 10px;
+        }
+        .grid.grid-sm .card-actions {
+            padding-top: 6px;
+            gap: 4px;
+        }
+        .grid.grid-sm .card-actions .btn {
+            padding: 4px 6px;
+            font-size: 11px;
         }
 
         /* カード */
@@ -269,13 +368,25 @@
 
     <div class="stats-bar">
         <span id="resultCount">読み込み中...</span>
-        <div style="display: flex; align-items: center; gap: 8px;">
-            <label for="perPageSelect" style="font-size: 13px; color: #6b7280;">表示件数:</label>
-            <select id="perPageSelect" class="per-page-select">
-                <option value="20" selected>20 件 / ページ</option>
-                <option value="40">40 件 / ページ</option>
-                <option value="60">60 件 / ページ</option>
-            </select>
+        <div class="stats-controls">
+            <!-- 表示サイズ切り替え -->
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="stats-label">表示:</span>
+                <div class="view-size-group">
+                    <button type="button" class="view-size-btn" data-size="lg" title="大サイズ（高精細・詳細プレビュー）">🔲 大</button>
+                    <button type="button" class="view-size-btn active" data-size="md" title="中サイズ（標準グリッド）">▦ 中</button>
+                    <button type="button" class="view-size-btn" data-size="sm" title="小サイズ（コンパクト一覧）">⠿ 小</button>
+                </div>
+            </div>
+            <!-- 表示件数切り替え -->
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <span class="stats-label">件数:</span>
+                <select id="perPageSelect" class="per-page-select">
+                    <option value="20" selected>20件</option>
+                    <option value="40">40件</option>
+                    <option value="60">60件</option>
+                </select>
+            </div>
         </div>
     </div>
 
@@ -305,11 +416,20 @@
 
 <script>
     let currentOffset = 0;
-    let limit = 20;
+    const perPageSelectEl = document.getElementById('perPageSelect');
+    const savedLimit = parseInt(localStorage.getItem('images_per_page') || perPageSelectEl?.value, 10) || 20;
+    let limit = savedLimit;
+    if (perPageSelectEl) {
+        perPageSelectEl.value = String(limit);
+    }
     let currentKeyword = '';
 
     async function loadImages(offset = 0) {
         currentOffset = offset;
+        const perPageEl = document.getElementById('perPageSelect');
+        if (perPageEl && perPageEl.value) {
+            limit = parseInt(perPageEl.value, 10) || limit;
+        }
         const grid = document.getElementById('imageGrid');
         const loading = document.getElementById('loadingState');
         const empty = document.getElementById('emptyState');
@@ -568,8 +688,31 @@
 
     document.getElementById('perPageSelect').addEventListener('change', (e) => {
         limit = parseInt(e.target.value, 10) || 20;
+        localStorage.setItem('images_per_page', String(limit));
         loadImages(0);
     });
+
+    // 表示サイズ切り替え（大・中・小）
+    let currentCardSize = localStorage.getItem('images_card_size') || 'md';
+    function applyCardSize(size) {
+        currentCardSize = size;
+        localStorage.setItem('images_card_size', size);
+        const grid = document.getElementById('imageGrid');
+        if (grid) {
+            grid.classList.remove('grid-lg', 'grid-md', 'grid-sm');
+            grid.classList.add(`grid-${size}`);
+        }
+        document.querySelectorAll('.view-size-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.size === size);
+        });
+    }
+
+    document.querySelectorAll('.view-size-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            applyCardSize(btn.dataset.size);
+        });
+    });
+    applyCardSize(currentCardSize);
 
     // 初回読み込み
     loadImages(0);
