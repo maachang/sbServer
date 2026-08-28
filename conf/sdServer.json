@@ -34,6 +34,19 @@
         "steps": 8,
         "cfg_scale": 1
       }
+    },
+    {
+      "id": "server-8205",
+      "name": "z-image(228)",
+      "modelType": "natural",
+      "baseUrl": "http://192.168.0.228:8080",
+      "endpoint": "/sdapi/v1/txt2img",
+      "timeoutMs": 600000,
+      "description": "jetsonAgxでz-image",
+      "defaults": {
+        "steps": 8,
+        "cfg_scale": 1
+      }
     }
   ],
   "baseUrl": "http://192.168.0.233:8080",
