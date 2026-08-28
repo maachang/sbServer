@@ -19,6 +19,9 @@
             .container {
                 grid-template-columns: 1fr;
             }
+            .right-pane-card {
+                position: static !important;
+            }
         }
 
         .card {
@@ -72,13 +75,14 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            min-height: 400px;
+            justify-content: flex-start;
+            min-height: 380px;
             background: #f9fafb;
             border-radius: 8px;
             border: 2px dashed #e5e7eb;
             position: relative;
             overflow: hidden;
+            padding: 8px;
         }
         .preview-pane img {
             max-width: 100%;
@@ -86,6 +90,7 @@
             border-radius: 6px;
             object-fit: contain;
             box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            align-self: center;
         }
         .placeholder-text {
             color: #9ca3af;
@@ -301,6 +306,12 @@
         <form id="genForm">
             <input type="hidden" id="parentId" value="">
 
+            <!-- 生成実行・中断ボタン（最上部） -->
+            <div style="margin-bottom: 20px; display: flex; gap: 12px; align-items: center;">
+                <button type="submit" id="submitBtn" class="btn btn-primary" style="flex: 1; font-size: 15px; padding: 12px 16px; font-weight: 700;">✨ 画像を生成する</button>
+                <button type="button" id="cancelBtn" class="btn btn-danger" style="display: none; padding: 12px 16px; font-weight: 700;">🛑 中断する</button>
+            </div>
+
             <!-- SDサーバー（モデルサーバー）選択 -->
             <div class="form-group" id="sdServerGroup" style="display: none; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 10px 12px; margin-bottom: 16px;">
                 <div class="label-row" style="margin-bottom: 4px;">
@@ -385,33 +396,31 @@
                 </div>
             </div>
 
-            <div style="margin-top: 24px; display: flex; gap: 12px; align-items: center;">
-                <button type="submit" id="submitBtn" class="btn btn-primary" style="flex: 1;">✨ 画像を生成する</button>
+            <div style="margin-top: 20px; display: flex; justify-content: flex-end;">
                 <button type="button" id="resetBtn" class="btn btn-secondary" title="すべての入力値をサーバー既定値に戻します">🔄 既定値に戻す</button>
-                <button type="button" id="cancelBtn" class="btn btn-danger" style="display: none;">🛑 中断する</button>
             </div>
         </form>
     </div>
 
     <!-- 右ペイン: プレビュー & 結果 -->
-    <div class="card" style="display: flex; flex-direction: column;">
-        <h3 style="margin-top: 0; font-size: 16px; color: #374151;">生成結果プレビュー</h3>
+    <div class="card right-pane-card" style="display: flex; flex-direction: column; align-self: flex-start; position: sticky; top: 16px;">
+        <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 16px; color: #374151;">生成結果プレビュー</h3>
         
-        <div id="previewPane" class="preview-pane" style="flex: 1;">
-            <div id="emptyPreview" class="placeholder-text">
+        <div id="previewPane" class="preview-pane">
+            <div id="emptyPreview" class="placeholder-text" style="margin: auto 0; padding: 24px 0;">
                 <div style="font-size: 40px; margin-bottom: 8px;">🖼️</div>
                 <p>パラメータを設定して「画像を生成する」を押してください</p>
                 <p style="font-size: 12px; color: #9ca3af;">※ 生成完了時に保存するかどうかを選択できます</p>
             </div>
 
-            <div id="loadingIndicator" style="display: none; text-align: center;">
+            <div id="loadingIndicator" style="display: none; text-align: center; margin: auto 0; padding: 24px 0;">
                 <div class="spinner"></div>
                 <div class="timer-display" id="elapsedTimer">0.0s</div>
                 <p style="font-weight: 600; color: #1f2937; margin: 4px 0;">画像を生成しています...</p>
                 <p style="font-size: 12px; color: #6b7280; margin: 0;">※ stable-diffusion.cpp 処理中 (途中で中断可能)</p>
             </div>
 
-            <img id="resultImage" src="" alt="生成画像" style="display: none;" />
+            <img id="resultImage" src="" alt="生成画像" style="display: none; width: 100%;" />
         </div>
 
         <!-- 保存状態インジケータ -->
@@ -437,7 +446,7 @@
 
 <script>
     const urlParams = new URLSearchParams(window.location.search);
-    const editId = urlParams.get('id');
+    let currentEditId = urlParams.get('id') ? parseInt(urlParams.get('id'), 10) : null;
 
     let currentAbortController = null;
     let currentTaskId = null;
@@ -493,9 +502,9 @@
         const modalTitle = document.querySelector('#saveConfirmModal h3');
         const modalDesc = document.querySelector('#saveConfirmModal p');
         const saveBtn = document.getElementById('confirmSaveBtn');
-        if (editId) {
+        if (currentEditId) {
             if (modalTitle) modalTitle.textContent = '🎉 画像が再生成されました！';
-            if (modalDesc) modalDesc.textContent = `既存の元画像（#${editId}）をこの画像で上書き保存しますか？`;
+            if (modalDesc) modalDesc.textContent = `既存の元画像（#${currentEditId}）をこの画像で上書き保存（変更）しますか？`;
             if (saveBtn) saveBtn.textContent = '💾 上書き保存する';
         } else {
             if (modalTitle) modalTitle.textContent = '🎉 画像が生成されました！';
@@ -885,7 +894,7 @@
                         localStorage.setItem('sd_server_id', sel.value);
 
                         if (autoApplyDefaults && srv) {
-                            if (!editId) {
+                            if (!currentEditId) {
                                 applyDefaultParams();
                             } else {
                                 const serverName = srv.name || srv.id;
@@ -960,7 +969,7 @@
             }
 
             // 新規作成時は常にサーバー設定＋デフォルト設定を初期適用
-            if (!editId) {
+            if (!currentEditId) {
                 applyDefaultParams();
             }
 
@@ -978,13 +987,13 @@
     async function initPage() {
         await loadConfig();
 
-        if (editId) {
-            document.getElementById('pageModeBadge').textContent = `画像編集 (元画像 #${editId})`;
+        if (currentEditId) {
+            document.getElementById('pageModeBadge').textContent = `画像編集 (元画像 #${currentEditId})`;
             document.getElementById('editAlert').style.display = 'block';
-            document.getElementById('parentId').value = editId;
+            document.getElementById('parentId').value = currentEditId;
 
             try {
-                const res = await fetch(`/api/image?id=${editId}`);
+                const res = await fetch(`/api/image?id=${currentEditId}`);
                 const json = await res.json();
                 if (json.success && json.data) {
                     const item = json.data;
@@ -1158,7 +1167,7 @@
         const currentServer = currentServers.find(s => s.id === currentServerId);
 
         const payload = {
-            id: editId ? parseInt(editId, 10) : null,
+            id: currentEditId ? parseInt(currentEditId, 10) : null,
             base64Data: lastGeneratedData.base64Data,
             prompt: meta.prompt,
             negative_prompt: meta.negative_prompt,
@@ -1191,8 +1200,23 @@
                 lastGeneratedData.saved = true;
                 lastGeneratedData.data = json.data;
                 
+                const savedId = json.data.id;
+                const wasEdit = !!currentEditId;
+                currentEditId = savedId;
+
+                // URLパラメータを更新 (?id=savedId)
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.set('id', savedId);
+                newUrl.searchParams.delete('mode');
+                window.history.replaceState(null, '', newUrl.toString());
+
+                // UIのバッジやアラートを編集モード状態へ更新
+                document.getElementById('pageModeBadge').textContent = `画像編集 (元画像 #${savedId})`;
+                document.getElementById('editAlert').style.display = 'block';
+                document.getElementById('parentId').value = savedId;
+                
                 statusBar.className = 'save-status-bar status-saved';
-                statusText.textContent = editId ? `💾 元画像（#${editId}）を上書き保存しました` : '💾 ギャラリーに保存されました';
+                statusText.textContent = wasEdit ? `💾 元画像（#${savedId}）を上書き保存（変更）しました` : `💾 ギャラリーに保存されました (#${savedId})`;
                 manualSaveBtn.style.display = 'none';
                 statusBar.style.display = 'flex';
                 
