@@ -56,5 +56,10 @@ module.exports = {
         type: 'int',
         required: false,
         default: null
+    },
+    theme: {
+        type: 'string',
+        required: false,
+        default: ''
     }
 };

@@ -2,27 +2,6 @@
   "activeServer": "z-image",
   "servers": [
     {
-      "id": "server-1",
-      "name": "[低速]画像汎用",
-      "modelType": "natural",
-      "baseUrl": "http://192.168.0.233:8080",
-      "endpoint": "/sdapi/v1/txt2img",
-      "timeoutMs": 600000,
-      "description": "画像汎用: qwen-image 利用なので「速度が遅い」が画像は汎用的に出力できる。",
-      "defaults": {
-        "cfg_scale": 1
-      }
-    },
-    {
-      "id": "server-2",
-      "name": "[高速]アニメ調",
-      "modelType": "sd15",
-      "baseUrl": "http://192.168.0.229:8080",
-      "endpoint": "/sdapi/v1/txt2img",
-      "timeoutMs": 600000,
-      "description": "アニメ画像など"
-    },
-    {
       "id": "z-image",
       "name": "z-image",
       "modelType": "natural",
@@ -36,13 +15,13 @@
       }
     },
     {
-      "id": "server-8205",
-      "name": "z-image(228)",
-      "modelType": "natural",
-      "baseUrl": "http://192.168.0.228:8080",
+      "id": "server-0398",
+      "name": "z-image(229)",
+      "modelType": "sd15",
+      "baseUrl": "http://192.168.0.229:8080",
       "endpoint": "/sdapi/v1/txt2img",
       "timeoutMs": 600000,
-      "description": "jetsonAgxでz-image",
+      "description": "",
       "defaults": {
         "steps": 8,
         "cfg_scale": 1
@@ -147,6 +126,116 @@
       "min": 1,
       "max": 30,
       "step": 0.5
-    }
+    },
+    "themes": [
+      {
+        "id": "none",
+        "name": "指定なし (通常)",
+        "icon": "✨",
+        "description": "テーマ修飾を行わずに入力プロンプト通りに生成します",
+        "promptPrefix": "",
+        "promptSuffix": "",
+        "negativePrompt": ""
+      },
+      {
+        "id": "cute",
+        "name": "かわいい (Kawaii / Pop)",
+        "icon": "🎀",
+        "description": "パステルカラー、柔らかい光、愛らしくキュートな雰囲気",
+        "promptPrefix": "kawaii, adorable, cute, ",
+        "promptSuffix": ", pastel color palette, soft lighting, charming, delightful",
+        "negativePrompt": "dark, scary, sinister, terrifying, ugly"
+      },
+      {
+        "id": "anime",
+        "name": "アニメ・イラスト (Anime Art)",
+        "icon": "🌸",
+        "description": "鮮やかなアニメ調イラスト・セル画シェーディング",
+        "promptPrefix": "anime style, key visual, ",
+        "promptSuffix": ", cel shading, vibrant colors, detailed anime illustration, expressive",
+        "negativePrompt": "photorealistic, 3d render, low quality anime"
+      },
+      {
+        "id": "photorealistic",
+        "name": "実写・フォトリアル (Photorealistic)",
+        "icon": "📷",
+        "description": "一眼レフ撮影のような高精細・写実的リアル写真風",
+        "promptPrefix": "photorealistic, professional photo, ",
+        "promptSuffix": ", 8k resolution, raw photo, dslr, natural skin texture, realistic lighting, highly detailed",
+        "negativePrompt": "anime, illustration, cartoon, 3d render, drawing, painting"
+      },
+      {
+        "id": "dark_fantasy",
+        "name": "ダークファンタジー (Dark Fantasy)",
+        "icon": "🔮",
+        "description": "ゴシック調、禍々しく重厚な神秘的世界観",
+        "promptPrefix": "dark fantasy art, gothic atmosphere, ",
+        "promptSuffix": ", moody dramatic lighting, ominous mist, ethereal glow, intricate ornate details, epic cinematic composition",
+        "negativePrompt": "cheerful, sunny, bright pastel, cartoonish"
+      },
+      {
+        "id": "cyberpunk",
+        "name": "サイバーパンク・近未来 (Cyberpunk)",
+        "icon": "⚡",
+        "description": "ネオン光、近未来ハイテク都市・サイケデリック",
+        "promptPrefix": "cyberpunk style, futuristic, ",
+        "promptSuffix": ", vibrant glowing neon lights, holographic details, high-tech aesthetic, night atmospheric illumination",
+        "negativePrompt": "rustic, medieval, vintage, pastel"
+      },
+      {
+        "id": "watercolor",
+        "name": "水彩画・手描き風 (Watercolor)",
+        "icon": "🎨",
+        "description": "水彩絵の具のにじみ・柔らかなタッチのアート作品風",
+        "promptPrefix": "watercolor painting, painterly, ",
+        "promptSuffix": ", soft brush strokes, watercolor bleeding effect, paper texture, elegant artistic illustration",
+        "negativePrompt": "photorealistic, hard lines, digital 3d, glossy"
+      },
+      {
+        "id": "retro_90s",
+        "name": "90年代レトロアニメ (90s Anime)",
+        "icon": "📼",
+        "description": "懐かしの90年代セル画アニメ・ノスタルジック風",
+        "promptPrefix": "90s anime style, retro vintage anime, ",
+        "promptSuffix": ", classic anime aesthetic, retro color grading, slight film grain, nostalgic cel animation",
+        "negativePrompt": "modern cgi, 3d, photorealistic, 4k digital"
+      },
+      {
+        "id": "isometric_3d",
+        "name": "3Dミニチュア (3D Isometric)",
+        "icon": "🧊",
+        "description": "クレイ調・ミニチュアジオラマ風アイソメトリック",
+        "promptPrefix": "isometric 3D, cute 3D render, miniature diorama, ",
+        "promptSuffix": ", tilt-shift photography, soft ambient lighting, octane render, stylized 3d, clean smooth edges",
+        "negativePrompt": "2d drawing, sketch, photorealistic human, flat"
+      },
+      {
+        "id": "cinematic",
+        "name": "映画・シネマティック (Cinematic)",
+        "icon": "🎬",
+        "description": "映画のワンシーンのような劇的な構図・陰影",
+        "promptPrefix": "cinematic film still, movie scene, ",
+        "promptSuffix": ", anamorphic lens flare, dramatic chiaroscuro lighting, depth of field, atmospheric, blockbuster production quality",
+        "negativePrompt": "amateur photo, snapshot, cartoon, flat lighting"
+      },
+      {
+        "id": "pixel_art",
+        "name": "ドット絵 (Pixel Art)",
+        "icon": "👾",
+        "description": "レトロゲーム・16bit調の美麗ピクセルアート",
+        "promptPrefix": "pixel art, 16-bit, retro game art, ",
+        "promptSuffix": ", clean pixel details, nostalgic color palette, detailed sprite work",
+        "negativePrompt": "smooth gradients, blur, vector, photorealistic, 3d render"
+      },
+      {
+        "id": "steampunk",
+        "name": "スチームパンク (Steampunk)",
+        "icon": "⚙️",
+        "description": "真鍮歯車・蒸気機関・ヴィクトリア調レトロSF",
+        "promptPrefix": "steampunk style, Victorian retro-futurism, ",
+        "promptSuffix": ", brass gears, copper clockwork, steam and smoke, intricate mechanical details, warm vintage lighting",
+        "negativePrompt": "modern plastic, neon cyberpunk, digital flat"
+      }
+    ]
   }
 }

@@ -43,6 +43,7 @@ exports.handler = async function() {
                 image_path: imagePath,
                 server_id: body.server_id || body.serverId,
                 server_name: body.server_name || body.serverName,
+                theme: body.theme !== undefined ? body.theme : '',
                 generation_time_ms: body.generation_time_ms || 0
             });
             recordId = parsedId;
@@ -63,6 +64,7 @@ exports.handler = async function() {
                 parent_id: body.parent_id || null,
                 server_id: body.server_id || body.serverId,
                 server_name: body.server_name || body.serverName,
+                theme: body.theme || '',
                 generation_time_ms: body.generation_time_ms || 0
             });
         }

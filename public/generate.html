@@ -322,6 +322,16 @@
                 <div id="sdServerDesc" style="font-size: 11px; color: #166534; margin-top: 4px;"></div>
             </div>
 
+            <!-- 生成テーマ（スタイル）選択 -->
+            <div class="form-group" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; margin-bottom: 16px;">
+                <div class="label-row" style="margin-bottom: 4px;">
+                    <label for="themeSelect" style="font-weight: 600; color: #334155; margin-bottom: 0;">🎭 生成テーマ (Theme / Style)</label>
+                    <span id="themeBadge" style="font-size: 11px; font-weight: 600; color: #475569;"></span>
+                </div>
+                <select id="themeSelect" style="border-color: #cbd5e1; background: #ffffff;"></select>
+                <div id="themeDesc" style="font-size: 11px; color: #64748b; margin-top: 4px;"></div>
+            </div>
+
             <div class="form-group">
                 <div class="label-row">
                     <label for="prompt">プロンプト (Prompt / 日本語入力可) <span style="color:red">*</span></label>
@@ -431,6 +441,7 @@
 
         <div id="resultMeta" class="result-meta">
             <div class="result-meta-item" id="usedServerRow" style="display: none;">🎨 <strong>使用SDサーバー:</strong> <span id="usedServerLabel" style="color: #166534; font-weight: 600;">-</span></div>
+            <div class="result-meta-item" id="usedThemeRow" style="display: none;">🎭 <strong>生成テーマ:</strong> <span id="usedThemeLabel" style="color: #475569; font-weight: 600;">-</span></div>
             <div class="result-meta-item">⏱️ <strong>生成所要時間:</strong> <span id="spentTimeLabel">-</span></div>
             <div class="result-meta-item">🌱 <strong>使用シード値:</strong> <span id="usedSeedLabel">-</span></div>
             <div class="result-meta-item" id="translatedPromptRow" style="display: none;">
@@ -454,6 +465,7 @@
     let timerInterval = null;
     let serverDefaults = null;
     let currentServers = [];
+    let availableThemes = [];
     let lastGeneratedData = null; // 最新の生成結果キャッシュ
 
     // 既存の古い一次保存データがあればクリア
@@ -518,6 +530,19 @@
         saveConfirmModal.style.display = 'none';
     }
 
+    function updateThemeDetails() {
+        const themeSelect = document.getElementById('themeSelect');
+        const themeDesc = document.getElementById('themeDesc');
+        const themeBadge = document.getElementById('themeBadge');
+        if (!themeSelect) return;
+        
+        const sel = themeSelect.options[themeSelect.selectedIndex];
+        if (sel) {
+            if (themeDesc) themeDesc.textContent = sel.dataset.desc || '';
+            if (themeBadge) themeBadge.textContent = sel.dataset.icon ? `${sel.dataset.icon} 選択中` : '';
+        }
+    }
+
     // 選択中サーバーのdefaults（または共通デフォルト）を適用
     function applyDefaultParams(clearPrompt = false) {
         const currentServerId = document.getElementById('sdServerSelect')?.value;
@@ -528,6 +553,10 @@
         if (clearPrompt) {
             document.getElementById('prompt').value = '';
             document.getElementById('negativePrompt').value = '';
+            if (document.getElementById('themeSelect')) {
+                document.getElementById('themeSelect').value = 'none';
+                updateThemeDetails();
+            }
             if (document.getElementById('promptAssistCheck')) {
                 document.getElementById('promptAssistCheck').checked = true;
             }
@@ -567,6 +596,10 @@
         if (!p) return;
         if (p.prompt !== undefined) document.getElementById('prompt').value = p.prompt;
         if (p.negative_prompt !== undefined) document.getElementById('negativePrompt').value = p.negative_prompt;
+        if (p.theme !== undefined && document.getElementById('themeSelect')) {
+            document.getElementById('themeSelect').value = p.theme || 'none';
+            updateThemeDetails();
+        }
         if (p.prompt_assist !== undefined && document.getElementById('promptAssistCheck')) {
             document.getElementById('promptAssistCheck').checked = p.prompt_assist;
         }
@@ -622,7 +655,8 @@
 
         btn.disabled = true;
         const selectedServerId = document.getElementById('sdServerSelect')?.value || '';
-        showOverlay('✨ AIプロンプト最適化中...', '選択中サーバーのモデル系統に合わせて構図・プロンプト・ネガティブを最適化しています...<br>しばらくお待ちください。');
+        const selectedTheme = document.getElementById('themeSelect')?.value || '';
+        showOverlay('✨ AIプロンプト最適化中...', '選択中サーバー・テーマに合わせて構図・プロンプト・ネガティブを最適化しています...<br>しばらくお待ちください。');
         try {
             const res = await fetch('/api/assist', {
                 method: 'POST',
@@ -630,7 +664,8 @@
                 body: JSON.stringify({
                     prompt: text,
                     negative_prompt: negEl.value.trim(),
-                    serverId: selectedServerId
+                    serverId: selectedServerId,
+                    theme: selectedTheme
                 })
             });
             const json = await res.json();
@@ -644,6 +679,8 @@
                     'sd15': '🏷️ SD 1.5系モデル向け (Danbooruタグ羅列スタイル)'
                 };
                 const modelTypeLabel = typeTitleMap[json.modelType] || '✨ AI最適化プレビュー';
+                const themeItem = availableThemes.find(t => t.id === selectedTheme);
+                const themeBadgeHtml = (themeItem && themeItem.id !== 'none') ? `<span style="font-size: 11px; font-weight: 600; background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px; border: 1px solid #c7d2fe; margin-left: 6px;">${themeItem.icon || '🎨'} ${escapeHtml(themeItem.name)}</span>` : '';
 
                 notice.style.display = 'block';
                 notice.style.background = '#fdf4ff';
@@ -957,6 +994,41 @@
                 if (opts.cfgScaleRange.step !== undefined) document.getElementById('cfgScale').step = opts.cfgScaleRange.step;
             }
 
+            // テーマ選択肢の生成
+            const themeSelect = document.getElementById('themeSelect');
+            if (opts.themes && Array.isArray(opts.themes)) {
+                availableThemes = opts.themes;
+            } else {
+                availableThemes = [
+                    { id: 'none', name: '指定なし (通常)', icon: '✨', description: 'テーマ修飾を行わずに入力プロンプト通りに生成します' },
+                    { id: 'cute', name: 'かわいい (Kawaii / Pop)', icon: '🎀', description: 'パステルカラー、柔らかい光、愛らしくキュートな雰囲気' },
+                    { id: 'anime', name: 'アニメ・イラスト (Anime Art)', icon: '🌸', description: '鮮やかなアニメ調イラスト・セル画シェーディング' },
+                    { id: 'photorealistic', name: '実写・フォトリアル (Photorealistic)', icon: '📷', description: '一眼レフ撮影のような高精細・写実的リアル写真風' },
+                    { id: 'dark_fantasy', name: 'ダークファンタジー (Dark Fantasy)', icon: '🔮', description: 'ゴシック調、禍々しく重厚な神秘的世界観' },
+                    { id: 'cyberpunk', name: 'サイバーパンク・近未来 (Cyberpunk)', icon: '⚡', description: 'ネオン光、近未来ハイテク都市・サイケデリック' },
+                    { id: 'watercolor', name: '水彩画・手描き風 (Watercolor)', icon: '🎨', description: '水彩絵の具のにじみ・柔らかなタッチのアート作品風' },
+                    { id: 'retro_90s', name: '90年代レトロアニメ (90s Anime)', icon: '📼', description: '懐かしの90年代セル画アニメ・ノスタルジック風' },
+                    { id: 'isometric_3d', name: '3Dミニチュア (3D Isometric)', icon: '🧊', description: 'クレイ調・ミニチュアジオラマ風アイソメトリック' },
+                    { id: 'cinematic', name: '映画・シネマティック (Cinematic)', icon: '🎬', description: '映画のワンシーンのような劇的な構図・陰影' },
+                    { id: 'pixel_art', name: 'ドット絵 (Pixel Art)', icon: '👾', description: 'レトロゲーム・16bit調の美麗ピクセルアート' },
+                    { id: 'steampunk', name: 'スチームパンク (Steampunk)', icon: '⚙️', description: '真鍮歯車・蒸気機関・ヴィクトリア調レトロSF' }
+                ];
+            }
+
+            if (themeSelect) {
+                themeSelect.innerHTML = '';
+                availableThemes.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.textContent = `${t.icon ? t.icon + ' ' : ''}${t.name}`;
+                    opt.dataset.desc = t.description || '';
+                    opt.dataset.icon = t.icon || '';
+                    themeSelect.appendChild(opt);
+                });
+                themeSelect.addEventListener('change', updateThemeDetails);
+                updateThemeDetails();
+            }
+
             // 新規作成時は常にサーバー設定＋デフォルト設定を初期適用
             if (!currentEditId) {
                 applyDefaultParams(true);
@@ -1021,6 +1093,18 @@
                     if (usedServerRow && usedServerLabel) {
                         usedServerLabel.textContent = displayServerName;
                         usedServerRow.style.display = 'block';
+                    }
+
+                    const usedThemeRow = document.getElementById('usedThemeRow');
+                    const usedThemeLabel = document.getElementById('usedThemeLabel');
+                    if (usedThemeRow && usedThemeLabel) {
+                        if (item.theme && item.theme !== 'none') {
+                            const th = availableThemes.find(t => t.id === item.theme);
+                            usedThemeLabel.textContent = th ? `${th.icon ? th.icon + ' ' : ''}${th.name}` : item.theme;
+                            usedThemeRow.style.display = 'block';
+                        } else {
+                            usedThemeRow.style.display = 'none';
+                        }
                     }
 
                     if (item.seed !== undefined) {
@@ -1154,6 +1238,7 @@
         const meta = lastGeneratedData.meta || {};
         const currentServerId = document.getElementById('sdServerSelect')?.value || '';
         const currentServer = currentServers.find(s => s.id === currentServerId);
+        const currentTheme = meta.theme !== undefined ? meta.theme : (document.getElementById('themeSelect')?.value || '');
 
         const payload = {
             id: currentEditId ? parseInt(currentEditId, 10) : null,
@@ -1171,6 +1256,7 @@
             parent_id: meta.parent_id,
             server_id: meta.server_id || currentServerId,
             server_name: meta.server_name || currentServer?.name || '',
+            theme: currentTheme,
             generation_time_ms: meta.generation_time_ms
         };
 
@@ -1283,12 +1369,14 @@
         }, 100);
 
         const isAssist = document.getElementById('promptAssistCheck')?.checked ?? true;
+        const selectedTheme = document.getElementById('themeSelect')?.value || '';
         const payload = {
             serverId: document.getElementById('sdServerSelect')?.value || null,
             prompt: document.getElementById('prompt').value.trim(),
             negative_prompt: document.getElementById('negativePrompt').value.trim(),
             promptMode: isAssist ? 'assist' : 'direct',
             promptAssist: isAssist,
+            theme: selectedTheme,
             width: parseInt(document.getElementById('width').value, 10),
             height: parseInt(document.getElementById('height').value, 10),
             steps: parseInt(document.getElementById('steps').value, 10),
@@ -1376,6 +1464,19 @@
                         usedServerRow.style.display = 'block';
                     } else if (usedServerRow) {
                         usedServerRow.style.display = 'none';
+                    }
+
+                    const usedThemeRow = document.getElementById('usedThemeRow');
+                    const usedThemeLabel = document.getElementById('usedThemeLabel');
+                    const effectiveTheme = data.theme || selectedTheme;
+                    if (usedThemeRow && usedThemeLabel) {
+                        if (effectiveTheme && effectiveTheme !== 'none') {
+                            const th = availableThemes.find(t => t.id === effectiveTheme);
+                            usedThemeLabel.textContent = th ? `${th.icon ? th.icon + ' ' : ''}${th.name}` : effectiveTheme;
+                            usedThemeRow.style.display = 'block';
+                        } else {
+                            usedThemeRow.style.display = 'none';
+                        }
                     }
                     
                     const trans = data.translated && data.translated.prompt;

@@ -252,18 +252,21 @@ maachang の `*.mt.js` / `*.mt.html` (JHTML) / `filter.mt.js` 内では以下の
 - **SD サーバーの中断**:
   - 中間サーバーは `AbortController` でタスクを破棄し、対象サーバーへ `POST /sdcpp/v1/jobs/{id}/cancel` を送信。
 
-## 5. ローカル LLM プロンプト最適化 (`lib/translator.js`)
+## 5. ローカル LLM プロンプト最適化 & テーマ修飾 (`lib/translator.js`)
 
 - Transformers.js により同一プロセス内で ONNX モデルを実行。
-- `assistPrompt(text, currentNegative, modelType)`:
-  - 渡された `modelType`（`sd15` / `sdxl` / `natural`）に応じてシステムプロンプトを切り替え、LLM に最適なプロンプト形式を出力させる。
+- `assistPrompt(text, currentNegative, modelType, themeId)`:
+  - 渡された `modelType`（`sd15` / `sdxl` / `natural`）および `themeId`（`cute`, `anime`, `cyberpunk`, `photorealistic` 等）に応じてシステムプロンプトを切り替え、LLM に最適なプロンプト形式を出力させる。
+- `applyThemeToPrompt(prompt, negativePrompt, themeId, modelType)`:
+  - 直訳モードや標準生成時にも、指定テーマに沿ったプレフィックス・サフィックス・推奨ネガティブプロンプトを合成・修飾。
 
 ## 6. 履歴管理とデータ整合性 (`lib/imageModel.js`)
 
-- SQLite `images` テーブルに `server_id` と `server_name` を保存。
+- SQLite `images` テーブルに `server_id`, `server_name`, `theme` を保存。
 - 過去データ（未設定）の取得時は `server-1` / `[低速]画像汎用` に自動フォールバック。
-- ギャラリーの「✏️ 再編集」時は、生成当時のプロンプト・サーバー設定が忠実に復元される。
+- ギャラリーの「✏️ 再編集」時は、生成当時のプロンプト・生成テーマ・サーバー設定が忠実に復元される。
 - **編集モード時のサーバー変更制御**: 編集画面で画像生成サーバーを変更した場合は確認ダイアログを表示。「OK」を選択した場合、解像度（幅・高さ）およびプロンプトを維持したまま、対象サーバーの推奨パラメータ（ステップ数、CFGスケール、サンプラー等）のみを安全に置き換える。
+- **上下デュアルページネーション**: 画像一覧画面（`/menu.html`）では上部・下部の両方にページングコントロールが同期表示され、スムーズなブラウジングが可能。
 
 ---
 
@@ -271,16 +274,16 @@ maachang の `*.mt.js` / `*.mt.html` (JHTML) / `filter.mt.js` 内では以下の
 
 | メソッド | パス | 説明 | 主なパラメータ / ボディ |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/generate` | 生成タスク作成 / キャンセル | `{ prompt, width, height, steps, cfg_scale, sampler_name, seed, serverId, promptMode }` または `{ action: "cancel", taskId }` |
+| `POST` | `/api/generate` | 生成タスク作成 / キャンセル | `{ prompt, negative_prompt, width, height, steps, cfg_scale, sampler_name, seed, serverId, promptMode, theme }` または `{ action: "cancel", taskId }` |
 | `GET` | `/api/generate` | タスクステータス確認 | `?taskId=task_xxx` |
-| `POST` | `/api/assist` | モデル系統別 AI プロンプト最適化 | `{ prompt, negative_prompt, serverId, modelType }` |
+| `POST` | `/api/assist` | モデル系統別・テーマ連動 AI プロンプト最適化 | `{ prompt, negative_prompt, serverId, modelType, theme }` |
 | `POST` | `/api/translate` | プロンプト英語直訳 | `{ text }` |
 | `GET` | `/api/sdServers` | SD サーバー全設定取得 | なし |
 | `POST` | `/api/sdServers` | サーバー保存 / 削除 / 接続テスト | `{ action: "saveServer"|"deleteServer"|"setActive"|"testConnection", ... }` |
 | `GET` | `/api/models` | LLM モデル一覧・進捗取得 | なし |
 | `POST` | `/api/models` | LLM 切替・追加・キャッシュ削除 | `{ action: "load"|"add"|"delete"|"deleteCache", modelId }` |
-| `GET` | `/api/images` | 画像履歴一覧・検索取得 | `?page=1&limit=20&keyword=xxx` |
-| `POST` | `/api/save` | 一時生成画像の永続保存 | `{ base64Data, prompt, negative_prompt, seed, ... }` |
+| `GET` | `/api/images` | 画像履歴一覧・検索取得 | `?limit=20&offset=0&keyword=xxx` |
+| `POST` | `/api/save` | 一時生成画像の永続保存 | `{ base64Data, prompt, negative_prompt, theme, seed, ... }` |
 | `POST` | `/api/delete` | 画像と DB レコードの完全削除 | `{ id }` |
 
 ---

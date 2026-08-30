@@ -272,6 +272,10 @@
             flex-wrap: wrap;
             gap: 12px;
         }
+        .pagination-top {
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
         .pagination-info {
             font-size: 13px;
             color: #4b5563;
@@ -390,6 +394,12 @@
         </div>
     </div>
 
+    <!-- 上部ページネーション -->
+    <div id="paginationTopContainer" class="pagination-container pagination-top" style="display: none;">
+        <div id="paginationTopInfo" class="pagination-info"></div>
+        <div id="paginationTopControls" class="pagination-controls"></div>
+    </div>
+
     <!-- 一覧グリッド -->
     <div id="imageGrid" class="grid"></div>
 
@@ -402,7 +412,7 @@
         <a href="/generate.html?mode=new" class="btn btn-primary">最初の画像を生成する</a>
     </div>
 
-    <!-- ページネーション -->
+    <!-- 下部ページネーション -->
     <div id="paginationContainer" class="pagination-container" style="display: none;">
         <div id="paginationInfo" class="pagination-info"></div>
         <div id="paginationControls" class="pagination-controls"></div>
@@ -434,7 +444,8 @@
         const loading = document.getElementById('loadingState');
         const empty = document.getElementById('emptyState');
         const countSpan = document.getElementById('resultCount');
-        const pagContainer = document.getElementById('paginationContainer');
+        const topPagContainer = document.getElementById('paginationTopContainer');
+        const bottomPagContainer = document.getElementById('paginationContainer');
 
         grid.innerHTML = '';
         loading.style.display = 'block';
@@ -459,7 +470,8 @@
             if (data.total === 0) {
                 countSpan.textContent = '0 件';
                 empty.style.display = 'block';
-                pagContainer.style.display = 'none';
+                if (topPagContainer) topPagContainer.style.display = 'none';
+                if (bottomPagContainer) bottomPagContainer.style.display = 'none';
                 return;
             }
 
@@ -469,7 +481,8 @@
 
             if (data.items.length === 0) {
                 empty.style.display = 'block';
-                pagContainer.style.display = 'none';
+                if (topPagContainer) topPagContainer.style.display = 'none';
+                if (bottomPagContainer) bottomPagContainer.style.display = 'none';
                 return;
             }
 
@@ -499,6 +512,26 @@
                     serverBadge = `<span class="badge" style="background: #e0f2fe; color: #0369a1; border-color: #bae6fd;" title="生成時サーバー: ${escapeHtml(sName)}">🎨 ${escapeHtml(sName)}</span>`;
                 }
 
+                // 生成テーマ情報のバッジ
+                let themeBadge = '';
+                if (item.theme && item.theme !== 'none') {
+                    const themeNames = {
+                        'cute': '🎀 かわいい',
+                        'anime': '🌸 アニメ',
+                        'photorealistic': '📷 実写リアル',
+                        'dark_fantasy': '🔮 ダークファンタジー',
+                        'cyberpunk': '⚡ サイバーパンク',
+                        'watercolor': '🎨 水彩画',
+                        'retro_90s': '📼 90sレトロ',
+                        'isometric_3d': '🧊 3Dミニチュア',
+                        'cinematic': '🎬 シネマティック',
+                        'pixel_art': '👾 ドット絵',
+                        'steampunk': '⚙️ スチームパンク'
+                    };
+                    const themeLabel = themeNames[item.theme] || `🎭 ${item.theme}`;
+                    themeBadge = `<span class="badge" style="background: #eef2ff; color: #4338ca; border-color: #c7d2fe;" title="生成テーマ: ${escapeHtml(themeLabel)}">${escapeHtml(themeLabel)}</span>`;
+                }
+
                 card.innerHTML = `
                     <div class="card-img-wrap">
                         <img src="${item.image_path}" alt="generated" class="card-img" onclick="openModal('${item.image_path}')" loading="lazy" />
@@ -508,6 +541,7 @@
                         ${subPromptHtml}
                         <div class="card-meta">
                             ${serverBadge}
+                            ${themeBadge}
                             <span class="badge">${item.width}x${item.height}</span>
                             <span class="badge">Steps: ${item.steps}</span>
                             <span class="badge">CFG: ${item.cfg_scale}</span>
@@ -532,77 +566,96 @@
     }
 
     function renderPagination(total, limit, offset) {
-        const container = document.getElementById('paginationContainer');
-        const infoEl = document.getElementById('paginationInfo');
-        const controlsEl = document.getElementById('paginationControls');
+        const topContainer = document.getElementById('paginationTopContainer');
+        const topInfoEl = document.getElementById('paginationTopInfo');
+        const topControlsEl = document.getElementById('paginationTopControls');
 
-        controlsEl.innerHTML = '';
+        const bottomContainer = document.getElementById('paginationContainer');
+        const bottomInfoEl = document.getElementById('paginationInfo');
+        const bottomControlsEl = document.getElementById('paginationControls');
+
         const totalPages = Math.ceil(total / limit);
 
         if (totalPages <= 1) {
-            container.style.display = 'none';
+            if (topContainer) topContainer.style.display = 'none';
+            if (bottomContainer) bottomContainer.style.display = 'none';
             return;
         }
 
         const currentPage = Math.floor(offset / limit) + 1;
-        infoEl.innerHTML = `ページ <strong>${currentPage}</strong> / ${totalPages} (全 ${total} 件)`;
+        const infoHtml = `ページ <strong>${currentPage}</strong> / ${totalPages} (全 ${total} 件)`;
 
-        // 「« 最初」ボタン
-        const firstBtn = document.createElement('button');
-        firstBtn.className = 'page-btn';
-        firstBtn.innerHTML = '«';
-        firstBtn.title = '最初のページ';
-        firstBtn.disabled = (currentPage === 1);
-        firstBtn.onclick = () => { goToPage(1); };
-        controlsEl.appendChild(firstBtn);
+        function populateControls(controlsEl) {
+            if (!controlsEl) return;
+            controlsEl.innerHTML = '';
 
-        // 「‹ 前へ」ボタン
-        const prevBtn = document.createElement('button');
-        prevBtn.className = 'page-btn';
-        prevBtn.innerHTML = '‹ 前へ';
-        prevBtn.disabled = (currentPage === 1);
-        prevBtn.onclick = () => { goToPage(currentPage - 1); };
-        controlsEl.appendChild(prevBtn);
+            // 「« 最初」ボタン
+            const firstBtn = document.createElement('button');
+            firstBtn.className = 'page-btn';
+            firstBtn.innerHTML = '«';
+            firstBtn.title = '最初のページ';
+            firstBtn.disabled = (currentPage === 1);
+            firstBtn.onclick = () => { goToPage(1); };
+            controlsEl.appendChild(firstBtn);
 
-        // ページ番号ボタンの生成
-        const pages = getPaginationPages(currentPage, totalPages);
-        pages.forEach(p => {
-            if (p === '...') {
-                const dots = document.createElement('span');
-                dots.className = 'page-ellipsis';
-                dots.textContent = '…';
-                controlsEl.appendChild(dots);
-            } else {
-                const btn = document.createElement('button');
-                btn.className = `page-btn ${p === currentPage ? 'active' : ''}`;
-                btn.textContent = p;
-                if (p === currentPage) {
-                    btn.disabled = true;
+            // 「‹ 前へ」ボタン
+            const prevBtn = document.createElement('button');
+            prevBtn.className = 'page-btn';
+            prevBtn.innerHTML = '‹ 前へ';
+            prevBtn.disabled = (currentPage === 1);
+            prevBtn.onclick = () => { goToPage(currentPage - 1); };
+            controlsEl.appendChild(prevBtn);
+
+            // ページ番号ボタンの生成
+            const pages = getPaginationPages(currentPage, totalPages);
+            pages.forEach(p => {
+                if (p === '...') {
+                    const dots = document.createElement('span');
+                    dots.className = 'page-ellipsis';
+                    dots.textContent = '…';
+                    controlsEl.appendChild(dots);
                 } else {
-                    btn.onclick = () => { goToPage(p); };
+                    const btn = document.createElement('button');
+                    btn.className = `page-btn ${p === currentPage ? 'active' : ''}`;
+                    btn.textContent = p;
+                    if (p === currentPage) {
+                        btn.disabled = true;
+                    } else {
+                        btn.onclick = () => { goToPage(p); };
+                    }
+                    controlsEl.appendChild(btn);
                 }
-                controlsEl.appendChild(btn);
-            }
-        });
+            });
 
-        // 「次へ ›」ボタン
-        const nextBtn = document.createElement('button');
-        nextBtn.className = 'page-btn';
-        nextBtn.innerHTML = '次へ ›';
-        nextBtn.disabled = (currentPage === totalPages);
-        nextBtn.onclick = () => { goToPage(currentPage + 1); };
-        controlsEl.appendChild(nextBtn);
+            // 「次へ ›」ボタン
+            const nextBtn = document.createElement('button');
+            nextBtn.className = 'page-btn';
+            nextBtn.innerHTML = '次へ ›';
+            nextBtn.disabled = (currentPage === totalPages);
+            nextBtn.onclick = () => { goToPage(currentPage + 1); };
+            controlsEl.appendChild(nextBtn);
 
-        // 「最後 »」ボタン
-        const lastBtn = document.createElement('button');
-        lastBtn.className = 'page-btn';
-        lastBtn.innerHTML = '»';
-        lastBtn.title = '最後のページ';
-        lastBtn.disabled = (currentPage === totalPages);
-        lastBtn.onclick = () => { goToPage(totalPages); };
-        controlsEl.appendChild(lastBtn);
+            // 「最後 »」ボタン
+            const lastBtn = document.createElement('button');
+            lastBtn.className = 'page-btn';
+            lastBtn.innerHTML = '»';
+            lastBtn.title = '最後のページ';
+            lastBtn.disabled = (currentPage === totalPages);
+            lastBtn.onclick = () => { goToPage(totalPages); };
+            controlsEl.appendChild(lastBtn);
+        }
 
-        container.style.display = 'flex';
+        if (topContainer && topInfoEl && topControlsEl) {
+            topInfoEl.innerHTML = infoHtml;
+            populateControls(topControlsEl);
+            topContainer.style.display = 'flex';
+        }
+
+        if (bottomContainer && bottomInfoEl && bottomControlsEl) {
+            bottomInfoEl.innerHTML = infoHtml;
+            populateControls(bottomControlsEl);
+            bottomContainer.style.display = 'flex';
+        }
     }
 
     function getPaginationPages(currentPage, totalPages) {

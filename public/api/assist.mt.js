@@ -14,6 +14,7 @@ exports.handler = async function() {
 
     const prompt = body.prompt || '';
     const negativePrompt = body.negative_prompt || '';
+    const theme = body.theme || body.themeId || '';
 
     let modelType = body.modelType;
     if (!modelType && (body.serverId || body.server_id)) {
@@ -28,13 +29,14 @@ exports.handler = async function() {
             prompt: '',
             negative_prompt: negativePrompt,
             original_prompt: '',
-            modelType
+            modelType,
+            theme
         };
     }
 
     try {
         if (translator && translator.assistPrompt) {
-            const result = await translator.assistPrompt(prompt, negativePrompt, modelType);
+            const result = await translator.assistPrompt(prompt, negativePrompt, modelType, theme);
             return {
                 success: true,
                 ...result

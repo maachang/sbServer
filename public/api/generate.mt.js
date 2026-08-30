@@ -116,6 +116,7 @@ exports.handler = async function() {
     const promptMode = body.promptMode || (body.promptAssist ? 'assist' : 'direct');
     const userPrompt = params.prompt;
     const userNegativePrompt = params.negative_prompt || '';
+    const theme = params.theme || body.theme || body.themeId || '';
 
     // 新規タスクの作成
     const newTaskId = `task_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
@@ -141,9 +142,11 @@ exports.handler = async function() {
             let translatedPrompt = '';
             let translatedNegativePrompt = '';
             let effectivePrompt = userPrompt;
+            let effectiveNegativePrompt = userNegativePrompt;
             const modelType = targetServer ? (targetServer.modelType || 'sd15') : 'sd15';
+            
             if (promptMode === 'assist' && translator && translator.assistPrompt) {
-                const assistResult = await translator.assistPrompt(userPrompt, userNegativePrompt, modelType);
+                const assistResult = await translator.assistPrompt(userPrompt, userNegativePrompt, modelType, theme);
                 if (assistResult.prompt) {
                     translatedPrompt = assistResult.prompt;
                     effectivePrompt = assistResult.prompt;
@@ -152,14 +155,27 @@ exports.handler = async function() {
                     translatedNegativePrompt = assistResult.negative_prompt;
                     effectiveNegativePrompt = assistResult.negative_prompt;
                 }
-            } else if (translator && translator.translateJaToEn) {
-                if (translator.containsJapanese(userPrompt)) {
-                    translatedPrompt = await translator.translateJaToEn(userPrompt);
-                    effectivePrompt = translatedPrompt;
+            } else if (translator) {
+                if (translator.translateJaToEn) {
+                    if (translator.containsJapanese(userPrompt)) {
+                        translatedPrompt = await translator.translateJaToEn(userPrompt);
+                        effectivePrompt = translatedPrompt;
+                    }
+                    if (translator.containsJapanese(userNegativePrompt)) {
+                        translatedNegativePrompt = await translator.translateJaToEn(userNegativePrompt);
+                        effectiveNegativePrompt = translatedNegativePrompt;
+                    }
                 }
-                if (translator.containsJapanese(userNegativePrompt)) {
-                    translatedNegativePrompt = await translator.translateJaToEn(userNegativePrompt);
-                    effectiveNegativePrompt = translatedNegativePrompt;
+                if (theme && translator.applyThemeToPrompt) {
+                    const themed = translator.applyThemeToPrompt(effectivePrompt, effectiveNegativePrompt, theme, modelType);
+                    effectivePrompt = themed.prompt;
+                    effectiveNegativePrompt = themed.negative_prompt;
+                    if (translatedPrompt) {
+                        translatedPrompt = effectivePrompt;
+                    }
+                    if (translatedNegativePrompt) {
+                        translatedNegativePrompt = effectiveNegativePrompt;
+                    }
                 }
             }
 
@@ -194,6 +210,7 @@ exports.handler = async function() {
                     parent_id: params.parent_id,
                     server_id: genResult.serverInfo?.id || params.serverId || params.server_id,
                     server_name: genResult.serverInfo?.name || '',
+                    theme: theme,
                     generation_time_ms: durationMs
                 });
                 createdItem = imageModel.getImageById(recordId);
@@ -209,6 +226,7 @@ exports.handler = async function() {
                 seed: finalSeed,
                 durationMs: durationMs,
                 durationSec: (durationMs / 1000).toFixed(2),
+                theme: theme,
                 translated: {
                     prompt: translatedPrompt || null,
                     negative_prompt: translatedNegativePrompt || null
@@ -227,6 +245,7 @@ exports.handler = async function() {
                     parent_id: params.parent_id,
                     server_id: genResult.serverInfo?.id || params.serverId || params.server_id,
                     server_name: genResult.serverInfo?.name || '',
+                    theme: theme,
                     generation_time_ms: durationMs
                 }
             };
