@@ -249,6 +249,102 @@
             display: block;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+
+        /* テーマ説明モーダル */
+        #themeInfoModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(2px);
+            z-index: 9998;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .theme-modal-card {
+            background: #ffffff;
+            border-radius: 12px;
+            max-width: 680px;
+            width: 100%;
+            max-height: 88vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        .theme-modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+        }
+        .theme-modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+        }
+        .theme-modal-footer {
+            padding: 12px 20px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f8fafc;
+        }
+        .theme-pill-btn {
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            color: #334155;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .theme-pill-btn:hover {
+            border-color: #818cf8;
+            background: #f5f3ff;
+            color: #4338ca;
+        }
+        .theme-pill-btn.active {
+            border-color: #6366f1;
+            background: #4f46e5;
+            color: #ffffff;
+            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);
+        }
+        .theme-detail-section {
+            margin-bottom: 16px;
+        }
+        .theme-detail-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .theme-detail-box {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px 14px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #1e293b;
+        }
     </style>
 </head>
 <body>
@@ -278,6 +374,86 @@
         <div style="display: flex; gap: 12px;">
             <button type="button" id="confirmSaveBtn" class="btn btn-success" style="flex: 1;">💾 保存する</button>
             <button type="button" id="confirmDiscardBtn" class="btn btn-secondary" style="flex: 1;">🗑️ 保存しない</button>
+        </div>
+    </div>
+</div>
+
+<!-- 生成テーマ詳細説明ポップアップモーダル -->
+<div id="themeInfoModal">
+    <div class="theme-modal-card">
+        <div class="theme-modal-header">
+            <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 6px;">
+                <span>🎭</span> <span>生成テーマの詳しい解説</span>
+            </h3>
+            <button type="button" id="closeThemeModalBtn" onclick="hideThemeInfoModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b; padding: 0 4px; line-height: 1;" title="閉じる">✕</button>
+        </div>
+        <div class="theme-modal-body">
+            <!-- 選択中テーマのヘッダーバナー -->
+            <div style="background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%); border: 1px solid #c7d2fe; border-radius: 10px; padding: 16px 18px; margin-bottom: 18px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <div style="font-size: 20px; font-weight: 800; color: #3730a3; display: flex; align-items: center; gap: 8px;">
+                        <span id="modalThemeIcon" style="font-size: 24px;">🎀</span>
+                        <span id="modalSelectedThemeTitle">かわいい (Kawaii / Pop)</span>
+                    </div>
+                    <span id="modalThemeBadge" style="font-size: 11px; font-weight: 700; background: #6366f1; color: #ffffff; padding: 3px 10px; border-radius: 9999px;">現在選択中</span>
+                </div>
+                <div id="modalSelectedThemeDesc" style="font-size: 14px; font-weight: 600; color: #4338ca; line-height: 1.5;">
+                    パステルカラー、柔らかい光、愛らしくキュートな雰囲気
+                </div>
+            </div>
+
+            <!-- スタイル概要と世界観 -->
+            <div class="theme-detail-section">
+                <div class="theme-detail-title">🎨 スタイル概要 & 演出効果</div>
+                <div class="theme-detail-box" id="modalThemeWorldview">
+                    -
+                </div>
+            </div>
+
+            <!-- 主な視覚的特徴 -->
+            <div class="theme-detail-section">
+                <div class="theme-detail-title">✨ 主なビジュアル特徴 (色彩・光・タッチ)</div>
+                <div class="theme-detail-box" id="modalThemeVisualFeatures">
+                    -
+                </div>
+            </div>
+
+            <!-- おすすめの被写体・活用シーン -->
+            <div class="theme-detail-section">
+                <div class="theme-detail-title">💡 おすすめの被写体・活用シーン</div>
+                <div class="theme-detail-box" id="modalThemeBestFor" style="background: #f0fdf4; border-color: #bbf7d0; color: #166534;">
+                    -
+                </div>
+            </div>
+
+            <!-- プロンプト修飾内容 -->
+            <div class="theme-detail-section">
+                <div class="theme-detail-title">🏷️ 自動適用されるプロンプト修飾 (内部処理)</div>
+                <div class="theme-detail-box" style="background: #faf5ff; border-color: #e9d5ff;">
+                    <div style="font-size: 11px; font-weight: 700; color: #7e22ce; margin-bottom: 4px;">✨ 先頭修飾タグ (Prefix):</div>
+                    <div id="modalThemePrefix" style="font-family: monospace; font-size: 12px; color: #581c87; word-break: break-all; margin-bottom: 8px; background: #ffffff; padding: 6px 10px; border-radius: 4px; border: 1px solid #f3e8ff;">-</div>
+                    
+                    <div style="font-size: 11px; font-weight: 700; color: #7e22ce; margin-bottom: 4px;">✨ 末尾仕上げタグ (Suffix):</div>
+                    <div id="modalThemeSuffix" style="font-family: monospace; font-size: 12px; color: #581c87; word-break: break-all; margin-bottom: 8px; background: #ffffff; padding: 6px 10px; border-radius: 4px; border: 1px solid #f3e8ff;">-</div>
+
+                    <div id="modalThemeNegSection" style="display: none;">
+                        <div style="font-size: 11px; font-weight: 700; color: #b91c1c; margin-bottom: 4px;">🚫 推奨ネガティブ補完 (Negative):</div>
+                        <div id="modalThemeNegative" style="font-family: monospace; font-size: 12px; color: #991b1b; word-break: break-all; background: #ffffff; padding: 6px 10px; border-radius: 4px; border: 1px solid #fee2e2;">-</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 他のテーマへの切り替え一覧 -->
+            <div style="margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+                <div style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 10px;">
+                    🔄 他のテーマの説明を見る（クリックで切り替え）:
+                </div>
+                <div id="modalThemePillList" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+            </div>
+        </div>
+        <div class="theme-modal-footer">
+            <span style="font-size: 12px; color: #64748b;">※ 生成画面のセレクトボックスと連動しています</span>
+            <button type="button" id="closeThemeModalBtn2" onclick="hideThemeInfoModal()" class="btn btn-primary btn-sm" style="padding: 7px 20px; font-weight: 700;">閉じる</button>
         </div>
     </div>
 </div>
@@ -324,11 +500,16 @@
 
             <!-- 生成テーマ（スタイル）選択 -->
             <div class="form-group" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; margin-bottom: 16px;">
-                <div class="label-row" style="margin-bottom: 4px;">
+                <div class="label-row" style="margin-bottom: 6px;">
                     <label for="themeSelect" style="font-weight: 600; color: #334155; margin-bottom: 0;">🎭 生成テーマ (Theme / Style)</label>
                     <span id="themeBadge" style="font-size: 11px; font-weight: 600; color: #475569;"></span>
                 </div>
-                <select id="themeSelect" style="border-color: #cbd5e1; background: #ffffff;"></select>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <select id="themeSelect" style="flex: 1; border-color: #cbd5e1; background: #ffffff;"></select>
+                    <button type="button" id="themeInfoBtn" onclick="showThemeInfoModal()" class="btn btn-secondary btn-sm" style="white-space: nowrap; padding: 7px 12px; font-weight: 600; background: #eef2ff; color: #4338ca; border-color: #c7d2fe; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;" title="選択中テーマの詳細説明を表示します">
+                        ℹ️ 説明
+                    </button>
+                </div>
                 <div id="themeDesc" style="font-size: 11px; color: #64748b; margin-top: 4px;"></div>
             </div>
 
@@ -465,7 +646,20 @@
     let timerInterval = null;
     let serverDefaults = null;
     let currentServers = [];
-    let availableThemes = [];
+    let availableThemes = [
+        { id: 'none', name: '指定なし (通常)', icon: '✨', description: 'テーマ修飾を行わずに入力プロンプト通りに生成します' },
+        { id: 'cute', name: 'かわいい (Kawaii / Pop)', icon: '🎀', description: 'パステルカラー、柔らかい光、愛らしくキュートな雰囲気', prefix: 'masterpiece, best quality, pastel colors, soft lighting, cute, adorable, pop art style', suffix: 'vibrant colors, clean lines' },
+        { id: 'anime', name: 'アニメ・イラスト (Anime Art)', icon: '🌸', description: '鮮やかなアニメ調イラスト・セル画シェーディング', prefix: 'masterpiece, best quality, anime style, key visual, highly detailed anime artwork', suffix: 'cel shading, vibrant colors, sharp focus' },
+        { id: 'photorealistic', name: '実写・フォトリアル (Photorealistic)', icon: '📷', description: '一眼レフ撮影のような高精細・写実的リアル写真風', prefix: 'masterpiece, best quality, photorealistic, 8k resolution, raw photo, highly detailed, DSLR, f/1.8', suffix: 'natural lighting, realistic textures, highly detailed skin' },
+        { id: 'dark_fantasy', name: 'ダークファンタジー (Dark Fantasy)', icon: '🔮', description: 'ゴシック調、禍々しく重厚な神秘的世界観', prefix: 'masterpiece, best quality, dark fantasy, gothic atmosphere, ominous, dramatic lighting', suffix: 'deep shadows, mystical, highly detailed textures' },
+        { id: 'cyberpunk', name: 'サイバーパンク・近未来 (Cyberpunk)', icon: '⚡', description: 'ネオン光、近未来ハイテク都市・サイケデリック', prefix: 'masterpiece, best quality, cyberpunk aesthetic, neon lights, futuristic, glowing edges', suffix: 'holographic reflections, detailed tech, moody night lighting' },
+        { id: 'watercolor', name: '水彩画・手描き風 (Watercolor)', icon: '🎨', description: '水彩絵の具のにじみ・柔らかなタッチのアート作品風', prefix: 'masterpiece, best quality, watercolor painting, traditional art, soft brush strokes', suffix: 'water splashes, paper texture, artistic bleeding' },
+        { id: 'retro_90s', name: '90年代レトロアニメ (90s Anime)', icon: '📼', description: '懐かしの90年代セル画アニメ・ノスタルジック風', prefix: 'masterpiece, best quality, 1990s anime style, retro cel animation, vintage anime', suffix: 'grain, nostalgic atmosphere, retro anime aesthetic' },
+        { id: 'isometric_3d', name: '3Dミニチュア (3D Isometric)', icon: '🧊', description: 'クレイ調・ミニチュアジオラマ風アイソメトリック', prefix: 'masterpiece, best quality, isometric 3D render, tilt-shift, clay model, miniature diorama', suffix: 'octane render, soft shadows, vibrant toy aesthetic' },
+        { id: 'cinematic', name: '映画・シネマティック (Cinematic)', icon: '🎬', description: '映画のワンシーンのような劇的な構図・陰影', prefix: 'masterpiece, best quality, cinematic shot, movie scene, dramatic composition', suffix: 'anamorphic lens flare, film grain, depth of field, color graded' },
+        { id: 'pixel_art', name: 'ドット絵 (Pixel Art)', icon: '👾', description: 'レトロゲーム・16bit調の美麗ピクセルアート', prefix: 'masterpiece, best quality, 16-bit pixel art, detailed pixel sprite, retro gaming style', suffix: 'clean pixel borders, vibrant color palette' },
+        { id: 'steampunk', name: 'スチームパンク (Steampunk)', icon: '⚙️', description: '真鍮歯車・蒸気機関・ヴィクトリア調レトロSF', prefix: 'masterpiece, best quality, steampunk style, brass gears, copper pipes, Victorian aesthetic', suffix: 'steam mist, intricate mechanical details, warm vintage lighting' }
+    ];
     let lastGeneratedData = null; // 最新の生成結果キャッシュ
 
     // 既存の古い一次保存データがあればクリア
@@ -542,6 +736,176 @@
             if (themeBadge) themeBadge.textContent = sel.dataset.icon ? `${sel.dataset.icon} 選択中` : '';
         }
     }
+
+    // テーマ詳細解説データ辞書
+    const themeDetailsMap = {
+        'none': {
+            worldview: '追加のスタイル修飾を行わず、入力したプロンプトの指定内容のみで忠実に画像を生成する標準モードです。',
+            visualFeatures: 'ベースモデルやLoRAの持ち味を100%発揮させます。色調やタッチは入力したプロンプトの内容に全面的に依存します。',
+            bestFor: '自身で細かくタグや構図を完全にコントロールしたい場合や、特定のモデルの元々の画風をストレートに出したいときにおすすめです。'
+        },
+        'cute': {
+            worldview: 'パステルカラーの柔らかい色使いと温かみのあるライティングで、見る人を和ませる愛らしくキュート・ポップな世界観を演出します。',
+            visualFeatures: '淡いトーンのパステルパレット、丸みのある優しい陰影、清潔感のあるクッキリとした主線、ふんわりとした拡散光（ソフトライティング）。',
+            bestFor: 'かわいい美少女・美少年キャラクター、マスコット、動物（猫、うさぎ、小犬）、スイーツ・デザート、ファンシーな雑貨や可愛いインテリア空間。'
+        },
+        'anime': {
+            worldview: '現代の商業アニメーションやライトノベルの表紙、キービジュアルのような鮮やかで完成度の高いアニメ調イラストを表現します。',
+            visualFeatures: '明確で美しいセル画シェーディング（影の階調表現）、シャープな線画、生き生きと輝く瞳のハイライト、彩度の高い鮮やかな色彩設計。',
+            bestFor: 'アニメキャラクター全般、アクションシーン、ファンタジー世界の主人公・ヒロイン、学園モノ、日常系アニメの一コマ。'
+        },
+        'photorealistic': {
+            worldview: '高級一眼レフカメラ（DSLR）と単焦点レンズでプロカメラマンが撮影したかのような、圧倒的な解像感と写実性を持つリアル写真風です。',
+            visualFeatures: '極めて繊細な肌の質感（毛穴・キメ）、髪の毛1本ずつの緻密な描写、自然な光学ボケ（浅い被写界深度・f/1.8）、リアルな環境光と影のグラデーション。',
+            bestFor: '実写風ポートレート、リアルな自然風景、近代的な都市景観、製品・ガジェット写真、料理・ストリートスナップ。'
+        },
+        'dark_fantasy': {
+            worldview: 'ゴシック調の重厚感と、禍々しくも神秘的で荘厳なファンタジー世界を表現します。ダークでスリリングな物語性を宿します。',
+            visualFeatures: '深いシャドウと暗色ベースのトーン、ドラマチックなスポットライトや逆光、妖しく光るエフェクト、金属・石・古木のリアルで荒削りな質感。',
+            bestFor: '伝説の魔剣・呪われた武具、ダークエルフ、魔導士、重装騎士、モンスター、古城・崩壊した遺跡、薄暗いダンジョン。'
+        },
+        'cyberpunk': {
+            worldview: '超高層ビルが立ち並ぶ近未来都市と、ネオンライトの眩い輝き、ハイテク技術と退廃的なストリート感が融合したSFサイバーパンク世界です。',
+            visualFeatures: 'シアン（青緑）やマゼンタ（赤紫）の強烈なネオン発光、濡れたアスファルトの反射光、ホログラムディスプレイ、サイバネティクス（義体・端子・ケーブル）。',
+            bestFor: 'ネオン輝く夜の近未来都市、サイボーグ戦士、ハッカー、アンドロイド、未来的なメカ・バイク・兵器、電脳空間。'
+        },
+        'watercolor': {
+            worldview: '透明水彩絵の具の繊細なにじみやぼかし、筆のタッチを活かした、情緒豊かで温かみのあるアナログ手描きアート作品風です。',
+            visualFeatures: '絵の具が水に溶け込むような美しいグラデーション、水滴の飛沫（スプラッシュ）、画用紙のテクスチャ感、淡く優しい発色と余白の美。',
+            bestFor: '花や植物、雨上がりの風景、静物、詩的で情緒的なポートレート、絵本風のイラスト、旅のスケッチ風アート。'
+        },
+        'retro_90s': {
+            worldview: '1990年代の日本のOVAやセル画アニメ黄金期を彷彿とさせる、どこか懐かしく味わい深いノスタルジックなレトロアニメ風です。',
+            visualFeatures: '当時のセル画特有の階調塗り、わずかなフィルム粒子（グレイン感）、独特の淡いハイライト、レトロで温かみのあるアナログカラーパレット。',
+            bestFor: '90年代風クラシック美少女・美少年、レトロSFメカ、懐かしい街並み、ヴィンテージ感を出したいキャラクターイラスト。'
+        },
+        'isometric_3d': {
+            worldview: 'クレイアニメ（粘土細工）やミニチュアジオラマを斜め上から俯瞰したような、箱庭的で可愛い3Dアイソメトリック構図です。',
+            visualFeatures: 'おもちゃのような滑らかで柔らかいプラスチック/クレイの質感、ティルトシフト撮影のようなミニチュアぼかし、鮮やかでポップなトイカラー。',
+            bestFor: '部屋の断面やインテリア空間、小さな島や箱庭の街、乗り物、可愛い建築物、ジオラマ風キャラクター配置。'
+        },
+        'cinematic': {
+            worldview: 'ハリウッドの大作映画のワンシーンをそのまま切り取ったかのような、重厚で圧倒的な臨場感とストーリー性を持つシネマティック表現です。',
+            visualFeatures: '映画用アナモルフィックレンズ特有の光条（レンズフレア）、映画館のようなカラーグレーディング（ティール＆オレンジ等）、劇的な構図と陰影。',
+            bestFor: '映画ポスター風、ドラマチックな対決シーン、壮大な自然景観や災害、物語のクライマックスを想起させる印象的な情景。'
+        },
+        'pixel_art': {
+            worldview: 'スーパーファミコンや往年のPCレトロゲームを思い起こさせる、16-bit時代の美麗で緻密なドット絵・ピクセルアートです。',
+            visualFeatures: '規則正しいピクセルグリッド、厳選されたパレットカラー、ドットの配置による立体感と陰影の表現、レトロゲーム特有の親しみやすさ。',
+            bestFor: 'レトロゲーム風のキャラクターやモンスター、RPGのダンジョン・街マップ、アイテムアイコン、ドット絵アート作品。'
+        },
+        'steampunk': {
+            worldview: '蒸気機関と真鍮の歯車が高度に発達した、19世紀ヴィクトリア朝ロンドンをベースとするレトロフューチャーSF世界観です。',
+            visualFeatures: '真鍮（ブラス）・銅（コッパー）・使い込まれた革の重厚な質感、吹き出す白い蒸気煙（スチーム）、複雑に組み合わさった歯車や圧力メーター。',
+            bestFor: '蒸気機関車、飛行船、真鍮製のガジェットや義肢、ゴーグルを身につけた発明家、レトロな機械工房や工場。'
+        }
+    };
+
+    function renderThemeModalDetails(themeId) {
+        const t = availableThemes.find(item => item.id === themeId) || availableThemes[0];
+        if (!t) return;
+
+        const details = themeDetailsMap[t.id] || {
+            worldview: t.description || 'テーマ修飾を行わずに生成します。',
+            visualFeatures: '選択したテーマに応じたプロンプト修飾が行われます。',
+            bestFor: '様々なシチュエーションで利用可能です。'
+        };
+
+        const iconEl = document.getElementById('modalThemeIcon');
+        const titleEl = document.getElementById('modalSelectedThemeTitle');
+        const descEl = document.getElementById('modalSelectedThemeDesc');
+        const worldviewEl = document.getElementById('modalThemeWorldview');
+        const visualEl = document.getElementById('modalThemeVisualFeatures');
+        const bestForEl = document.getElementById('modalThemeBestFor');
+        const prefixEl = document.getElementById('modalThemePrefix');
+        const suffixEl = document.getElementById('modalThemeSuffix');
+        const negEl = document.getElementById('modalThemeNegative');
+        const negSec = document.getElementById('modalThemeNegSection');
+
+        if (iconEl) iconEl.textContent = t.icon || '🎨';
+        if (titleEl) titleEl.textContent = t.name;
+        if (descEl) descEl.textContent = t.description || '';
+        if (worldviewEl) worldviewEl.textContent = details.worldview;
+        if (visualEl) visualEl.textContent = details.visualFeatures;
+        if (bestForEl) bestForEl.textContent = details.bestFor;
+
+        if (prefixEl) prefixEl.textContent = t.prefix ? t.prefix : '（なし：プロンプト先頭の自動付加はありません）';
+        if (suffixEl) suffixEl.textContent = t.suffix ? t.suffix : '（なし：プロンプト末尾の自動付加はありません）';
+
+        if (t.negative) {
+            if (negEl) negEl.textContent = t.negative;
+            if (negSec) negSec.style.display = 'block';
+        } else {
+            if (negSec) negSec.style.display = 'none';
+        }
+
+        // ピルボタンのアクティブ状態を更新
+        const pills = document.querySelectorAll('.theme-pill-btn');
+        pills.forEach(btn => {
+            if (btn.dataset.themeId === t.id) {
+                btn.className = 'theme-pill-btn active';
+            } else {
+                btn.className = 'theme-pill-btn';
+            }
+        });
+    }
+
+    function showThemeInfoModal() {
+        const themeSelect = document.getElementById('themeSelect');
+        const currentThemeId = themeSelect ? themeSelect.value : 'none';
+        const pillContainer = document.getElementById('modalThemePillList');
+
+        if (pillContainer) {
+            pillContainer.innerHTML = '';
+            availableThemes.forEach(t => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = (t.id === currentThemeId) ? 'theme-pill-btn active' : 'theme-pill-btn';
+                btn.dataset.themeId = t.id;
+                btn.innerHTML = `<span>${escapeHtml(t.icon || '🎨')}</span> <span>${escapeHtml(t.name.split(' ')[0])}</span>`;
+
+                btn.addEventListener('click', () => {
+                    if (themeSelect) {
+                        themeSelect.value = t.id;
+                        updateThemeDetails();
+                    }
+                    renderThemeModalDetails(t.id);
+                });
+
+                pillContainer.appendChild(btn);
+            });
+        }
+
+        renderThemeModalDetails(currentThemeId);
+        if (themeInfoModal) themeInfoModal.style.display = 'flex';
+    }
+
+    function hideThemeInfoModal() {
+        if (themeInfoModal) themeInfoModal.style.display = 'none';
+    }
+
+    window.showThemeInfoModal = showThemeInfoModal;
+    window.hideThemeInfoModal = hideThemeInfoModal;
+
+    if (themeInfoBtn) themeInfoBtn.addEventListener('click', showThemeInfoModal);
+    if (closeThemeModalBtn) closeThemeModalBtn.addEventListener('click', hideThemeInfoModal);
+    if (closeThemeModalBtn2) closeThemeModalBtn2.addEventListener('click', hideThemeInfoModal);
+    if (themeInfoModal) {
+        themeInfoModal.addEventListener('click', (e) => {
+            if (e.target === themeInfoModal) hideThemeInfoModal();
+        });
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (themeInfoModal && themeInfoModal.style.display === 'flex') {
+                hideThemeInfoModal();
+            }
+            if (saveConfirmModal && saveConfirmModal.style.display === 'flex') {
+                hideSaveModal();
+            }
+        }
+    });
 
     // 選択中サーバーのdefaults（または共通デフォルト）を適用
     function applyDefaultParams(clearPrompt = false) {
