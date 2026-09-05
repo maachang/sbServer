@@ -672,16 +672,16 @@
                 }
 
                 selectEl.style.display = 'block';
-                noteEl.innerHTML = `✅ <strong>${models.length} 件のモデルを取得しました。</strong> リストから選択できます。`;
+                noteEl.innerHTML = jhtml.html`✅ <strong>${models.length} 件のモデルを取得しました。</strong> リストから選択できます。`;
                 noteEl.style.color = '#15803d';
                 showAlert(`外部サーバーから ${models.length} 件のモデルを取得しました`);
             } else {
-                noteEl.innerHTML = `⚠️ <strong>モデル一覧を取得できませんでした:</strong> ${escapeHtml(json.error || '不明なエラー')}`;
+                noteEl.innerHTML = jhtml.html`⚠️ <strong>モデル一覧を取得できませんでした:</strong> ${json.error || '不明なエラー'}`;
                 noteEl.style.color = '#b91c1c';
                 showAlert(`モデル一覧取得失敗: ${json.error}`, true);
             }
         } catch (e) {
-            noteEl.innerHTML = `⚠️ <strong>通信エラー:</strong> ${escapeHtml(e.message)}`;
+            noteEl.innerHTML = jhtml.html`⚠️ <strong>通信エラー:</strong> ${e.message}`;
             noteEl.style.color = '#b91c1c';
             showAlert(`通信エラー: ${e.message}`, true);
         } finally {
@@ -846,7 +846,7 @@
     function deleteCacheOnly(modelId, cacheSize) {
         openDeleteModal({
             title: 'キャッシュファイルの削除',
-            desc: `モデル <strong>${escapeHtml(modelId)}</strong> のキャッシュ（${escapeHtml(cacheSize)}）を削除します。`,
+            desc: jhtml.html`モデル <strong>${modelId}</strong> のキャッシュ（${cacheSize}）を削除します。`,
             showCacheOption: false,
             onConfirm: async () => {
                 showLoading('削除中...');
@@ -864,7 +864,7 @@
     function deleteModelItem(modelId, isCached, cacheSize) {
         openDeleteModal({
             title: 'モデル項目の削除',
-            desc: `モデル <strong>${escapeHtml(modelId)}</strong> を設定一覧から削除します。`,
+            desc: jhtml.html`モデル <strong>${modelId}</strong> を設定一覧から削除します。`,
             showCacheOption: isCached,
             cacheSizeFormatted: cacheSize,
             onConfirm: async (deleteCache) => {
@@ -883,7 +883,7 @@
     function deleteOrphanCache(modelId, cacheSize) {
         openDeleteModal({
             title: '未登録キャッシュの完全消去',
-            desc: `未登録モデル <strong>${escapeHtml(modelId)}</strong> のキャッシュ (${escapeHtml(cacheSize)}) を完全に削除します。`,
+            desc: jhtml.html`未登録モデル <strong>${modelId}</strong> のキャッシュ (${cacheSize}) を完全に削除します。`,
             showCacheOption: false,
             onConfirm: async () => {
                 showLoading('削除中...');
@@ -924,11 +924,6 @@
     });
 
     document.getElementById('globalRefreshBtn').addEventListener('click', loadModels);
-
-    function escapeHtml(str) {
-        if (!str) return '';
-        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-    }
 
     loadModels();
 </script>

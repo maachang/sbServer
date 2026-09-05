@@ -637,6 +637,45 @@
     </div>
 </div>
 
+<!-- JHTML AIアシスト通知テンプレート -->
+<script type="text/jhtml" id="tpl-assist-notice">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <span style="font-weight: 700; font-size: 13px;">✨ AI最適化プレビュー <span style="font-size: 11px; font-weight: 600; background: #fae8ff; color: #86198f; padding: 2px 6px; border-radius: 4px; border: 1px solid #e879f9; margin-left: 6px;">${modelTypeLabel}</span></span>
+        <button type="button" id="closeAssistNoticeBtn" class="btn-xs" style="background: transparent; border: none; cursor: pointer; color: #86198f; font-size: 14px; padding: 0 4px;" title="閉じる">✕</button>
+    </div>
+    <div style="margin-bottom: 6px;">
+        <strong style="color: #4a044e; font-size: 12px;">最適化後プロンプト:</strong>
+        <div style="background: #ffffff; border: 1px solid #f5d0fe; padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin-top: 2px; word-break: break-all; color: #1f2937;">
+            ${optimizedPrompt}
+        </div>
+    </div>
+    <% if (optimizedNeg) { %>
+    <div style="margin-bottom: 8px;">
+        <strong style="color: #4a044e; font-size: 12px;">推奨ネガティブプロンプト:</strong>
+        <div style="background: #ffffff; border: 1px solid #f5d0fe; padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin-top: 2px; word-break: break-all; color: #1f2937;">
+            ${optimizedNeg}
+        </div>
+    </div>
+    <% } %>
+    <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+        <button type="button" id="applyAssistBtn" class="btn-xs" style="background: #a21caf; color: #ffffff; border: none; font-weight: 600; padding: 5px 12px; border-radius: 4px; cursor: pointer;">✅ 入力欄に適用する</button>
+    </div>
+</script>
+
+<!-- JHTML 翻訳通知テンプレート -->
+<script type="text/jhtml" id="tpl-trans-notice">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+        <strong>🌐 ${title}:</strong>
+        <button type="button" id="${closeBtnId}" class="btn-xs" style="background: transparent; border: none; cursor: pointer; color: #166534; font-size: 14px;" title="閉じる">✕</button>
+    </div>
+    <div style="background: #ffffff; border: 1px solid #dcfce7; padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin-bottom: 6px; word-break: break-all; color: #1f2937;">
+        ${translated}
+    </div>
+    <div style="display: flex; justify-content: flex-end;">
+        <button type="button" id="${applyBtnId}" class="btn-xs" style="background: #15803d; color: #ffffff; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer;">✅ ${applyLabel}</button>
+    </div>
+</script>
+
 <script>
     const urlParams = new URLSearchParams(window.location.search);
     let currentEditId = urlParams.get('id') ? parseInt(urlParams.get('id'), 10) : null;
@@ -1053,35 +1092,17 @@
                 };
                 const modelTypeLabel = typeTitleMap[json.modelType] || '✨ AI最適化プレビュー';
                 const themeItem = availableThemes.find(t => t.id === selectedTheme);
-                const themeBadgeHtml = (themeItem && themeItem.id !== 'none') ? `<span style="font-size: 11px; font-weight: 600; background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px; border: 1px solid #c7d2fe; margin-left: 6px;">${themeItem.icon || '🎨'} ${escapeHtml(themeItem.name)}</span>` : '';
+                const themeBadgeHtml = (themeItem && themeItem.id !== 'none') ? `<span style="font-size: 11px; font-weight: 600; background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px; border: 1px solid #c7d2fe; margin-left: 6px;">${themeItem.icon || '🎨'} ${jhtml.escape(themeItem.name)}</span>` : '';
 
                 notice.style.display = 'block';
                 notice.style.background = '#fdf4ff';
                 notice.style.border = '1px solid #f0abfc';
                 notice.style.color = '#86198f';
-                notice.innerHTML = jhtml.html`
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <span style="font-weight: 700; font-size: 13px;">✨ AI最適化プレビュー <span style="font-size: 11px; font-weight: 600; background: #fae8ff; color: #86198f; padding: 2px 6px; border-radius: 4px; border: 1px solid #e879f9; margin-left: 6px;">${modelTypeLabel}</span></span>
-                        <button type="button" id="closeAssistNoticeBtn" class="btn-xs" style="background: transparent; border: none; cursor: pointer; color: #86198f; font-size: 14px; padding: 0 4px;" title="閉じる">✕</button>
-                    </div>
-                    <div style="margin-bottom: 6px;">
-                        <strong style="color: #4a044e; font-size: 12px;">最適化後プロンプト:</strong>
-                        <div style="background: #ffffff; border: 1px solid #f5d0fe; padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin-top: 2px; word-break: break-all; color: #1f2937;">
-                            ${optimizedPrompt}
-                        </div>
-                    </div>
-                    ${optimizedNeg ? jhtml.raw(jhtml.html`
-                    <div style="margin-bottom: 8px;">
-                        <strong style="color: #4a044e; font-size: 12px;">推奨ネガティブプロンプト:</strong>
-                        <div style="background: #ffffff; border: 1px solid #f5d0fe; padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin-top: 2px; word-break: break-all; color: #1f2937;">
-                            ${optimizedNeg}
-                        </div>
-                    </div>
-                    `) : ''}
-                    <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
-                        <button type="button" id="applyAssistBtn" class="btn-xs" style="background: #a21caf; color: #ffffff; border: none; font-weight: 600; padding: 5px 12px; border-radius: 4px; cursor: pointer;">✅ 入力欄に適用する</button>
-                    </div>
-                `;
+                notice.innerHTML = await jhtml.render('tpl-assist-notice', {
+                    modelTypeLabel,
+                    optimizedPrompt,
+                    optimizedNeg
+                });
 
                 document.getElementById('closeAssistNoticeBtn')?.addEventListener('click', () => {
                     notice.style.display = 'none';
@@ -1136,18 +1157,13 @@
             notice.style.background = '#f0fdf4';
             notice.style.border = '1px solid #bbf7d0';
             notice.style.color = '#166534';
-            notice.innerHTML = jhtml.html`
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <strong>🌐 英訳プレビュー:</strong>
-                    <button type="button" id="closePromptTransBtn" class="btn-xs" style="background: transparent; border: none; cursor: pointer; color: #166534; font-size: 14px;" title="閉じる">✕</button>
-                </div>
-                <div style="background: #ffffff; border: 1px solid #dcfce7; padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin-bottom: 6px; word-break: break-all; color: #1f2937;">
-                    ${translated}
-                </div>
-                <div style="display: flex; justify-content: flex-end;">
-                    <button type="button" id="applyTransPromptBtn" class="btn-xs" style="background: #15803d; color: #ffffff; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer;">✅ プロンプト欄に適用</button>
-                </div>
-            `;
+            notice.innerHTML = await jhtml.render('tpl-trans-notice', {
+                title: '英訳プレビュー',
+                closeBtnId: 'closePromptTransBtn',
+                applyBtnId: 'applyTransPromptBtn',
+                applyLabel: 'プロンプト欄に適用',
+                translated
+            });
 
             document.getElementById('closePromptTransBtn')?.addEventListener('click', () => {
                 notice.style.display = 'none';
@@ -1179,18 +1195,13 @@
             notice.style.background = '#f0fdf4';
             notice.style.border = '1px solid #bbf7d0';
             notice.style.color = '#166534';
-            notice.innerHTML = jhtml.html`
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <strong>🌐 ネガティブ英訳プレビュー:</strong>
-                    <button type="button" id="closeNegTransBtn" class="btn-xs" style="background: transparent; border: none; cursor: pointer; color: #166534; font-size: 14px;" title="閉じる">✕</button>
-                </div>
-                <div style="background: #ffffff; border: 1px solid #dcfce7; padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin-bottom: 6px; word-break: break-all; color: #1f2937;">
-                    ${translated}
-                </div>
-                <div style="display: flex; justify-content: flex-end;">
-                    <button type="button" id="applyTransNegBtn" class="btn-xs" style="background: #15803d; color: #ffffff; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer;">✅ ネガティブ欄に適用</button>
-                </div>
-            `;
+            notice.innerHTML = await jhtml.render('tpl-trans-notice', {
+                title: 'ネガティブ英訳プレビュー',
+                closeBtnId: 'closeNegTransBtn',
+                applyBtnId: 'applyTransNegBtn',
+                applyLabel: 'ネガティブ欄に適用',
+                translated
+            });
 
             document.getElementById('closeNegTransBtn')?.addEventListener('click', () => {
                 notice.style.display = 'none';
@@ -1207,15 +1218,6 @@
             btn.disabled = false;
         }
     });
-
-    function escapeHtml(str) {
-        if (!str) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-    }
 
     // 幅・高さの入力値に合わせてセレクトボックスの選択状態を同期
     function syncResolutionPreset(w, h) {

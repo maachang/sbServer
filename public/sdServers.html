@@ -620,14 +620,6 @@
         if (defs.sampler_name) document.getElementById('defSampler').value = defs.sampler_name;
     }
 
-    function escapeHtml(str) {
-        return String(str || '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-    }
-
     async function setActive(serverId) {
         try {
             const res = await fetch('/api/sdServers', {

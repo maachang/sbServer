@@ -653,15 +653,6 @@
         document.getElementById('previewModal').classList.remove('open');
     }
 
-    function escapeHtml(str) {
-        if (!str) return '';
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-    }
-
     // 検索イベント設定
     document.getElementById('searchBtn').addEventListener('click', () => {
         currentKeyword = document.getElementById('searchInput').value.trim();
