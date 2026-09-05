@@ -783,8 +783,20 @@
         modal.style.display = 'flex';
     }
 
-    document.getElementById('modalCloseBtn').addEventListener('click', () => modal.style.display = 'none');
-    document.getElementById('modalCancelBtn').addEventListener('click', () => modal.style.display = 'none');
+    function closeModal() {
+        modal.style.display = 'none';
+    }
+
+    document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
+    document.getElementById('modalCancelBtn').addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.style.display === 'flex') {
+            closeModal();
+        }
+    });
 
     // モーダル内テスト接続
     document.getElementById('modalTestBtn').addEventListener('click', async () => {
@@ -795,7 +807,7 @@
         }
 
         if (!baseUrl) {
-            alert('ベースURLを入力してください');
+            showToast('ベースURLを入力してください', 'warning');
             return;
         }
 
@@ -878,10 +890,10 @@
                 serverConfig = json.data;
                 renderServers();
             } else {
-                alert(json.error || '保存に失敗しました');
+                showToast(json.error || '保存に失敗しました', 'error');
             }
         } catch (e) {
-            alert('保存エラー: ' + e.message);
+            showToast('保存エラー: ' + e.message, 'error');
         }
     });
 
