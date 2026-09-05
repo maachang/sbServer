@@ -361,104 +361,11 @@
     </div>
 </div>
 
-<!-- 生成完了時の保存確認モーダル -->
-<div id="saveConfirmModal">
-    <div class="confirm-card">
-        <h3 style="margin: 0 0 8px 0; font-size: 18px; color: #1f2937;">🎉 画像が生成されました！</h3>
-        <p style="font-size: 14px; color: #4b5563; margin: 0 0 12px 0;">この画像を履歴ギャラリーに保存しますか？</p>
-        
-        <img id="confirmThumb" class="confirm-preview-thumb" src="" alt="生成プレビュー" />
+<!-- 生成完了時の保存確認モーダル（動的レンダリング用コンテナ） -->
+<div id="saveConfirmModal"></div>
 
-        <p style="font-size: 12px; color: #6b7280; margin: 0 0 20px 0;">
-            ※「保存しない」を選択すると、サーバーの画像ファイルおよびDB履歴は保存されません（現在の画面でダウンロードのみ可能です）。
-        </p>
-
-        <div style="display: flex; gap: 12px;">
-            <button type="button" id="confirmSaveBtn" class="btn btn-success" style="flex: 1;">💾 保存する</button>
-            <button type="button" id="confirmDiscardBtn" class="btn btn-secondary" style="flex: 1;">🗑️ 保存しない</button>
-        </div>
-    </div>
-</div>
-
-<!-- 生成テーマ詳細説明ポップアップモーダル -->
-<div id="themeInfoModal">
-    <div class="theme-modal-card">
-        <div class="theme-modal-header">
-            <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 6px;">
-                <span>🎭</span> <span>生成テーマの詳しい解説</span>
-            </h3>
-            <button type="button" id="closeThemeModalBtn" onclick="hideThemeInfoModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b; padding: 0 4px; line-height: 1;" title="閉じる">✕</button>
-        </div>
-        <div class="theme-modal-body">
-            <!-- 選択中テーマのヘッダーバナー -->
-            <div style="background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%); border: 1px solid #c7d2fe; border-radius: 10px; padding: 16px 18px; margin-bottom: 18px;">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
-                    <div style="font-size: 20px; font-weight: 800; color: #3730a3; display: flex; align-items: center; gap: 8px;">
-                        <span id="modalThemeIcon" style="font-size: 24px;">🎀</span>
-                        <span id="modalSelectedThemeTitle">かわいい (Kawaii / Pop)</span>
-                    </div>
-                    <span id="modalThemeBadge" style="font-size: 11px; font-weight: 700; background: #6366f1; color: #ffffff; padding: 3px 10px; border-radius: 9999px;">現在選択中</span>
-                </div>
-                <div id="modalSelectedThemeDesc" style="font-size: 14px; font-weight: 600; color: #4338ca; line-height: 1.5;">
-                    パステルカラー、柔らかい光、愛らしくキュートな雰囲気
-                </div>
-            </div>
-
-            <!-- スタイル概要と世界観 -->
-            <div class="theme-detail-section">
-                <div class="theme-detail-title">🎨 スタイル概要 & 演出効果</div>
-                <div class="theme-detail-box" id="modalThemeWorldview">
-                    -
-                </div>
-            </div>
-
-            <!-- 主な視覚的特徴 -->
-            <div class="theme-detail-section">
-                <div class="theme-detail-title">✨ 主なビジュアル特徴 (色彩・光・タッチ)</div>
-                <div class="theme-detail-box" id="modalThemeVisualFeatures">
-                    -
-                </div>
-            </div>
-
-            <!-- おすすめの被写体・活用シーン -->
-            <div class="theme-detail-section">
-                <div class="theme-detail-title">💡 おすすめの被写体・活用シーン</div>
-                <div class="theme-detail-box" id="modalThemeBestFor" style="background: #f0fdf4; border-color: #bbf7d0; color: #166534;">
-                    -
-                </div>
-            </div>
-
-            <!-- プロンプト修飾内容 -->
-            <div class="theme-detail-section">
-                <div class="theme-detail-title">🏷️ 自動適用されるプロンプト修飾 (内部処理)</div>
-                <div class="theme-detail-box" style="background: #faf5ff; border-color: #e9d5ff;">
-                    <div style="font-size: 11px; font-weight: 700; color: #7e22ce; margin-bottom: 4px;">✨ 先頭修飾タグ (Prefix):</div>
-                    <div id="modalThemePrefix" style="font-family: monospace; font-size: 12px; color: #581c87; word-break: break-all; margin-bottom: 8px; background: #ffffff; padding: 6px 10px; border-radius: 4px; border: 1px solid #f3e8ff;">-</div>
-                    
-                    <div style="font-size: 11px; font-weight: 700; color: #7e22ce; margin-bottom: 4px;">✨ 末尾仕上げタグ (Suffix):</div>
-                    <div id="modalThemeSuffix" style="font-family: monospace; font-size: 12px; color: #581c87; word-break: break-all; margin-bottom: 8px; background: #ffffff; padding: 6px 10px; border-radius: 4px; border: 1px solid #f3e8ff;">-</div>
-
-                    <div id="modalThemeNegSection" style="display: none;">
-                        <div style="font-size: 11px; font-weight: 700; color: #b91c1c; margin-bottom: 4px;">🚫 推奨ネガティブ補完 (Negative):</div>
-                        <div id="modalThemeNegative" style="font-family: monospace; font-size: 12px; color: #991b1b; word-break: break-all; background: #ffffff; padding: 6px 10px; border-radius: 4px; border: 1px solid #fee2e2;">-</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 他のテーマへの切り替え一覧 -->
-            <div style="margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
-                <div style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 10px;">
-                    🔄 他のテーマの説明を見る（クリックで切り替え）:
-                </div>
-                <div id="modalThemePillList" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
-            </div>
-        </div>
-        <div class="theme-modal-footer">
-            <span style="font-size: 12px; color: #64748b;">※ 生成画面のセレクトボックスと連動しています</span>
-            <button type="button" id="closeThemeModalBtn2" onclick="hideThemeInfoModal()" class="btn btn-primary btn-sm" style="padding: 7px 20px; font-weight: 700;">閉じる</button>
-        </div>
-    </div>
-</div>
+<!-- 生成テーマ詳細説明ポップアップモーダル（動的レンダリング用コンテナ） -->
+<div id="themeInfoModal"></div>
 
 <header data-current-page="generate" data-sub-title="新規画像生成" data-badge-id="pageModeBadge"></header>
 
@@ -666,6 +573,113 @@
     </div>
 </script>
 
+<!-- JHTML 保存確認モーダルテンプレート -->
+<script type="text/jhtml" id="tpl-save-confirm">
+    <div class="confirm-card">
+        <h3 style="margin: 0 0 8px 0; font-size: 18px; color: #1f2937;">${title}</h3>
+        <p style="font-size: 14px; color: #4b5563; margin: 0 0 12px 0;">${desc}</p>
+        
+        <img id="confirmThumb" class="confirm-preview-thumb" src="${dataUrl}" alt="生成プレビュー" />
+
+        <p style="font-size: 12px; color: #6b7280; margin: 0 0 20px 0;">
+            ※「保存しない」を選択すると、サーバーの画像ファイルおよびDB履歴は保存されません（現在の画面でダウンロードのみ可能です）。
+        </p>
+
+        <div style="display: flex; gap: 12px;">
+            <button type="button" id="confirmSaveBtn" class="btn btn-success" style="flex: 1;">${saveBtnText}</button>
+            <button type="button" id="confirmDiscardBtn" class="btn btn-secondary" style="flex: 1;">🗑️ 保存しない</button>
+        </div>
+    </div>
+</script>
+
+<!-- JHTML テーマ詳細モーダルテンプレート -->
+<script type="text/jhtml" id="tpl-theme-info-modal">
+    <div class="theme-modal-card">
+        <div class="theme-modal-header">
+            <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 6px;">
+                <span>🎭</span> <span>生成テーマの詳しい解説</span>
+            </h3>
+            <button type="button" id="closeThemeModalBtn" class="theme-modal-close" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b; padding: 0 4px; line-height: 1;" title="閉じる">✕</button>
+        </div>
+        <div class="theme-modal-body">
+            <!-- 選択中テーマのヘッダーバナー -->
+            <div style="background: linear-gradient(135deg, #eef2ff 0%, #f5f3ff 100%); border: 1px solid #c7d2fe; border-radius: 10px; padding: 16px 18px; margin-bottom: 18px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                    <div style="font-size: 20px; font-weight: 800; color: #3730a3; display: flex; align-items: center; gap: 8px;">
+                        <span id="modalThemeIcon" style="font-size: 24px;">${currentTheme.icon || '🎨'}</span>
+                        <span id="modalSelectedThemeTitle">${currentTheme.name}</span>
+                    </div>
+                    <span id="modalThemeBadge" style="font-size: 11px; font-weight: 700; background: #6366f1; color: #ffffff; padding: 3px 10px; border-radius: 9999px;">現在選択中</span>
+                </div>
+                <div id="modalSelectedThemeDesc" style="font-size: 14px; font-weight: 600; color: #4338ca; line-height: 1.5;">
+                    ${currentTheme.description || ''}
+                </div>
+            </div>
+
+            <!-- スタイル概要と世界観 -->
+            <div class="theme-detail-section">
+                <div class="theme-detail-title">🎨 スタイル概要 & 演出効果</div>
+                <div class="theme-detail-box" id="modalThemeWorldview">${details.worldview}</div>
+            </div>
+
+            <!-- 主な視覚的特徴 -->
+            <div class="theme-detail-section">
+                <div class="theme-detail-title">✨ 主なビジュアル特徴 (色彩・光・タッチ)</div>
+                <div class="theme-detail-box" id="modalThemeVisualFeatures">${details.visualFeatures}</div>
+            </div>
+
+            <!-- おすすめの被写体・活用シーン -->
+            <div class="theme-detail-section">
+                <div class="theme-detail-title">💡 おすすめの被写体・活用シーン</div>
+                <div class="theme-detail-box" id="modalThemeBestFor" style="background: #f0fdf4; border-color: #bbf7d0; color: #166534;">${details.bestFor}</div>
+            </div>
+
+            <!-- プロンプト修飾内容 -->
+            <div class="theme-detail-section">
+                <div class="theme-detail-title">🏷️ 自動適用されるプロンプト修飾 (内部処理)</div>
+                <div class="theme-detail-box" style="background: #faf5ff; border-color: #e9d5ff;">
+                    <div style="font-size: 11px; font-weight: 700; color: #7e22ce; margin-bottom: 4px;">✨ 先頭修飾タグ (Prefix):</div>
+                    <div id="modalThemePrefix" style="font-family: monospace; font-size: 12px; color: #581c87; word-break: break-all; margin-bottom: 8px; background: #ffffff; padding: 6px 10px; border-radius: 4px; border: 1px solid #f3e8ff;">
+                        ${currentTheme.prefix ? currentTheme.prefix : '（なし：プロンプト先頭の自動付加はありません）'}
+                    </div>
+                    
+                    <div style="font-size: 11px; font-weight: 700; color: #7e22ce; margin-bottom: 4px;">✨ 末尾仕上げタグ (Suffix):</div>
+                    <div id="modalThemeSuffix" style="font-family: monospace; font-size: 12px; color: #581c87; word-break: break-all; margin-bottom: 8px; background: #ffffff; padding: 6px 10px; border-radius: 4px; border: 1px solid #f3e8ff;">
+                        ${currentTheme.suffix ? currentTheme.suffix : '（なし：プロンプト末尾の自動付加はありません）'}
+                    </div>
+
+                    <div id="modalThemeNegSection" style="display: <%= currentTheme.negative ? 'block' : 'none' %>;">
+                        <div style="font-size: 11px; font-weight: 700; color: #b91c1c; margin-bottom: 4px;">🚫 推奨ネガティブ補完 (Negative):</div>
+                        <div id="modalThemeNegative" style="font-family: monospace; font-size: 12px; color: #991b1b; word-break: break-all; background: #ffffff; padding: 6px 10px; border-radius: 4px; border: 1px solid #fee2e2;">
+                            ${currentTheme.negative || ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 他のテーマへの切り替え一覧 -->
+            <div style="margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 14px;">
+                <div style="font-size: 13px; font-weight: 700; color: #334155; margin-bottom: 10px;">
+                    🔄 他のテーマの説明を見る（クリックで切り替え）:
+                </div>
+                <div id="modalThemePillList" style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    <% themes.forEach(t => { %>
+                        <button type="button"
+                                class="theme-pill-btn <%= t.id === currentTheme.id ? 'active' : '' %>"
+                                data-theme-id="${t.id}">
+                            <span>${t.icon || '🎨'}</span> <span><%= t.name.split(' ')[0] %></span>
+                        </button>
+                    <% }); %>
+                </div>
+            </div>
+        </div>
+        <div class="theme-modal-footer">
+            <span style="font-size: 12px; color: #64748b;">※ 生成画面のセレクトボックスと連動しています</span>
+            <button type="button" id="closeThemeModalBtn2" class="btn btn-primary btn-sm theme-modal-close" style="padding: 7px 20px; font-weight: 700;">閉じる</button>
+        </div>
+    </div>
+</script>
+
 <script>
     const urlParams = new URLSearchParams(window.location.search);
     let currentEditId = urlParams.get('id') ? parseInt(urlParams.get('id'), 10) : null;
@@ -698,7 +712,6 @@
     const overlay = document.getElementById('translationOverlay');
     const overlayDesc = document.getElementById('translationOverlayDesc');
     const saveConfirmModal = document.getElementById('saveConfirmModal');
-    const confirmThumb = document.getElementById('confirmThumb');
 
     let translationTimerInterval = null;
 
@@ -733,25 +746,44 @@
         if (overlay) overlay.style.display = 'none';
     }
 
-    function showSaveModal(dataUrl) {
-        confirmThumb.src = dataUrl;
-        const modalTitle = document.querySelector('#saveConfirmModal h3');
-        const modalDesc = document.querySelector('#saveConfirmModal p');
-        const saveBtn = document.getElementById('confirmSaveBtn');
-        if (currentEditId) {
-            if (modalTitle) modalTitle.textContent = '🎉 画像が再生成されました！';
-            if (modalDesc) modalDesc.textContent = `既存の元画像（#${currentEditId}）をこの画像で上書き保存（変更）しますか？`;
-            if (saveBtn) saveBtn.textContent = '💾 上書き保存する';
-        } else {
-            if (modalTitle) modalTitle.textContent = '🎉 画像が生成されました！';
-            if (modalDesc) modalDesc.textContent = 'この画像を履歴ギャラリーに保存しますか？';
-            if (saveBtn) saveBtn.textContent = '💾 保存する';
-        }
+    async function showSaveModal(dataUrl) {
+        const title = currentEditId ? '🎉 画像が再生成されました！' : '🎉 画像が生成されました！';
+        const desc = currentEditId
+            ? `既存の元画像（#${currentEditId}）をこの画像で上書き保存（変更）しますか？`
+            : 'この画像を履歴ギャラリーに保存しますか？';
+        const saveBtnText = currentEditId ? '💾 上書き保存する' : '💾 保存する';
+
+        saveConfirmModal.innerHTML = await jhtml.render('tpl-save-confirm', {
+            title,
+            desc,
+            dataUrl,
+            saveBtnText
+        });
+
+        // モーダル内ボタンのイベント設定
+        document.getElementById('confirmSaveBtn')?.addEventListener('click', async () => {
+            hideSaveModal();
+            await saveImageToServer();
+        });
+
+        document.getElementById('confirmDiscardBtn')?.addEventListener('click', () => {
+            hideSaveModal();
+            const statusBar = document.getElementById('saveStatusBar');
+            const statusText = document.getElementById('saveStatusText');
+            const manualSaveBtn = document.getElementById('manualSaveBtn');
+
+            if (statusBar) statusBar.className = 'save-status-bar status-unsaved';
+            if (statusText) statusText.textContent = '⚠️ 保存されていません（一時プレビュー表示中）';
+            if (manualSaveBtn) manualSaveBtn.style.display = 'inline-flex';
+            if (statusBar) statusBar.style.display = 'flex';
+        });
+
         saveConfirmModal.style.display = 'flex';
     }
 
     function hideSaveModal() {
         saveConfirmModal.style.display = 'none';
+        saveConfirmModal.innerHTML = '';
     }
 
     function updateThemeDetails() {
@@ -831,7 +863,7 @@
         }
     };
 
-    function renderThemeModalDetails(themeId) {
+    async function renderThemeModal(themeId) {
         const t = availableThemes.find(item => item.id === themeId) || availableThemes[0];
         if (!t) return;
 
@@ -841,96 +873,57 @@
             bestFor: '様々なシチュエーションで利用可能です。'
         };
 
-        const iconEl = document.getElementById('modalThemeIcon');
-        const titleEl = document.getElementById('modalSelectedThemeTitle');
-        const descEl = document.getElementById('modalSelectedThemeDesc');
-        const worldviewEl = document.getElementById('modalThemeWorldview');
-        const visualEl = document.getElementById('modalThemeVisualFeatures');
-        const bestForEl = document.getElementById('modalThemeBestFor');
-        const prefixEl = document.getElementById('modalThemePrefix');
-        const suffixEl = document.getElementById('modalThemeSuffix');
-        const negEl = document.getElementById('modalThemeNegative');
-        const negSec = document.getElementById('modalThemeNegSection');
-
-        if (iconEl) iconEl.textContent = t.icon || '🎨';
-        if (titleEl) titleEl.textContent = t.name;
-        if (descEl) descEl.textContent = t.description || '';
-        if (worldviewEl) worldviewEl.textContent = details.worldview;
-        if (visualEl) visualEl.textContent = details.visualFeatures;
-        if (bestForEl) bestForEl.textContent = details.bestFor;
-
-        if (prefixEl) prefixEl.textContent = t.prefix ? t.prefix : '（なし：プロンプト先頭の自動付加はありません）';
-        if (suffixEl) suffixEl.textContent = t.suffix ? t.suffix : '（なし：プロンプト末尾の自動付加はありません）';
-
-        if (t.negative) {
-            if (negEl) negEl.textContent = t.negative;
-            if (negSec) negSec.style.display = 'block';
-        } else {
-            if (negSec) negSec.style.display = 'none';
-        }
-
-        // ピルボタンのアクティブ状態を更新
-        const pills = document.querySelectorAll('.theme-pill-btn');
-        pills.forEach(btn => {
-            if (btn.dataset.themeId === t.id) {
-                btn.className = 'theme-pill-btn active';
-            } else {
-                btn.className = 'theme-pill-btn';
-            }
+        themeInfoModal.innerHTML = await jhtml.render('tpl-theme-info-modal', {
+            currentTheme: t,
+            details,
+            themes: availableThemes
         });
     }
 
-    function showThemeInfoModal() {
+    async function showThemeInfoModal() {
         const themeSelect = document.getElementById('themeSelect');
         const currentThemeId = themeSelect ? themeSelect.value : 'none';
-        const pillContainer = document.getElementById('modalThemePillList');
 
-        if (pillContainer) {
-            pillContainer.innerHTML = jhtml.html`
-                ${availableThemes.map(t => jhtml.html`
-                    <button type="button"
-                            class="${t.id === currentThemeId ? 'theme-pill-btn active' : 'theme-pill-btn'}"
-                            data-theme-id="${t.id}">
-                        <span>${t.icon || '🎨'}</span> <span>${t.name.split(' ')[0]}</span>
-                    </button>
-                `)}
-            `;
-
-            if (!pillContainer.dataset.listenerAttached) {
-                pillContainer.addEventListener('click', (e) => {
-                    const btn = e.target.closest('.theme-pill-btn');
-                    if (!btn) return;
-                    const tid = btn.dataset.themeId;
-                    if (themeSelect) {
-                        themeSelect.value = tid;
-                        updateThemeDetails();
-                    }
-                    pillContainer.querySelectorAll('.theme-pill-btn').forEach(b => {
-                        b.classList.toggle('active', b.dataset.themeId === tid);
-                    });
-                    renderThemeModalDetails(tid);
-                });
-                pillContainer.dataset.listenerAttached = 'true';
-            }
-        }
-
-        renderThemeModalDetails(currentThemeId);
+        await renderThemeModal(currentThemeId);
         if (themeInfoModal) themeInfoModal.style.display = 'flex';
     }
 
     function hideThemeInfoModal() {
-        if (themeInfoModal) themeInfoModal.style.display = 'none';
+        if (themeInfoModal) {
+            themeInfoModal.style.display = 'none';
+            themeInfoModal.innerHTML = '';
+        }
     }
 
     window.showThemeInfoModal = showThemeInfoModal;
     window.hideThemeInfoModal = hideThemeInfoModal;
 
     if (themeInfoBtn) themeInfoBtn.addEventListener('click', showThemeInfoModal);
-    if (closeThemeModalBtn) closeThemeModalBtn.addEventListener('click', hideThemeInfoModal);
-    if (closeThemeModalBtn2) closeThemeModalBtn2.addEventListener('click', hideThemeInfoModal);
+
+    // モーダル内のイベント委譲（閉じるボタン・テーマ切り替えピル）
     if (themeInfoModal) {
-        themeInfoModal.addEventListener('click', (e) => {
-            if (e.target === themeInfoModal) hideThemeInfoModal();
+        themeInfoModal.addEventListener('click', async (e) => {
+            if (e.target === themeInfoModal) {
+                hideThemeInfoModal();
+                return;
+            }
+
+            if (e.target.closest('.theme-modal-close')) {
+                hideThemeInfoModal();
+                return;
+            }
+
+            const pillBtn = e.target.closest('.theme-pill-btn');
+            if (pillBtn) {
+                const tid = pillBtn.dataset.themeId;
+                const themeSelect = document.getElementById('themeSelect');
+                if (themeSelect) {
+                    themeSelect.value = tid;
+                    updateThemeDetails();
+                }
+                await renderThemeModal(tid);
+                return;
+            }
         });
     }
 
@@ -1672,25 +1665,6 @@
             alert('保存通信エラー: ' + e.message);
         }
     }
-
-    // モーダルの「💾 保存する」ボタン
-    document.getElementById('confirmSaveBtn').addEventListener('click', async () => {
-        hideSaveModal();
-        await saveImageToServer();
-    });
-
-    // モーダルの「🗑️ 保存しない」ボタン
-    document.getElementById('confirmDiscardBtn').addEventListener('click', () => {
-        hideSaveModal();
-        const statusBar = document.getElementById('saveStatusBar');
-        const statusText = document.getElementById('saveStatusText');
-        const manualSaveBtn = document.getElementById('manualSaveBtn');
-
-        statusBar.className = 'save-status-bar status-unsaved';
-        statusText.textContent = '⚠️ 保存されていません（一時プレビュー表示中）';
-        manualSaveBtn.style.display = 'inline-flex';
-        statusBar.style.display = 'flex';
-    });
 
     // 「今すぐ保存する」ボタン（後から保存したくなった場合）
     document.getElementById('manualSaveBtn').addEventListener('click', async () => {
