@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/css/common.css">
     <script src="/jhtml.browser.js"></script>
     <script src="/js/header.js"></script>
+    <script src="/js/toast.js"></script>
     <style>
         .container { max-width: 1000px; margin: 0 auto; padding: 24px 16px; }
 
@@ -506,6 +507,10 @@
         setTimeout(() => {
             el.style.display = 'none';
         }, 5000);
+
+        if (window.showToast) {
+            window.showToast(msg, isError ? 'error' : 'success');
+        }
     }
 
     async function loadServers() {

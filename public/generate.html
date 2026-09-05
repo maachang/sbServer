@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/css/common.css">
     <script src="/jhtml.browser.js"></script>
     <script src="/js/header.js"></script>
+    <script src="/js/toast.js"></script>
     <style>
         .container {
             max-width: 1100px;
@@ -1044,7 +1045,7 @@
         const btn = document.getElementById('assistPromptBtn');
         const text = promptEl.value.trim();
         if (!text) {
-            alert('プロンプトを入力してください');
+            showToast('プロンプトを入力してください', 'warning');
             return;
         }
 
@@ -1658,11 +1659,12 @@
                 statusBar.style.display = 'flex';
                 
                 document.getElementById('downloadBtn').href = json.data.image_path;
+                showToast(wasEdit ? '元画像を上書き保存しました' : 'ギャラリーに保存しました', 'success');
             } else {
-                alert('保存に失敗しました: ' + (json.error || '不明なエラー'));
+                showToast('保存に失敗しました: ' + (json.error || '不明なエラー'), 'error');
             }
         } catch (e) {
-            alert('保存通信エラー: ' + e.message);
+            showToast('保存通信エラー: ' + e.message, 'error');
         }
     }
 
