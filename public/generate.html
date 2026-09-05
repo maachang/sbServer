@@ -681,6 +681,46 @@
     </div>
 </script>
 
+<!-- JHTML 解像度プリセット選択肢テンプレート -->
+<script type="text/jhtml" id="tpl-resolution-options">
+    <% resolutions.forEach(r => { %>
+        <option value="${r.width}x${r.height}">
+            ${r.label || `${r.width} x ${r.height}`}
+        </option>
+    <% }); %>
+</script>
+
+<!-- JHTML サンプラー選択肢テンプレート -->
+<script type="text/jhtml" id="tpl-sampler-options">
+    <% samplers.forEach(s => { %>
+        <option value="${s.value}">${s.label || s.value}</option>
+    <% }); %>
+</script>
+
+<!-- JHTML テーマ選択肢テンプレート -->
+<script type="text/jhtml" id="tpl-theme-options">
+    <% themes.forEach(t => { %>
+        <option value="${t.id}"
+                data-desc="${t.description || ''}"
+                data-icon="${t.icon || ''}">
+            ${t.icon ? t.icon + ' ' : ''}${t.name}
+        </option>
+    <% }); %>
+</script>
+
+<!-- JHTML SDサーバー選択肢テンプレート -->
+<script type="text/jhtml" id="tpl-server-options">
+    <% servers.forEach(s => { %>
+        <option value="${s.id}"
+                data-desc="${s.description || ''}"
+                data-model-type="${s.mType}"
+                data-type-label="${s.typeLabel}"
+                data-url="${s.url}">
+            ${s.name || s.id} [${s.typeLabel}] (${s.url})
+        </option>
+    <% }); %>
+</script>
+
 <script>
     const urlParams = new URLSearchParams(window.location.search);
     let currentEditId = urlParams.get('id') ? parseInt(urlParams.get('id'), 10) : null;
@@ -1246,21 +1286,18 @@
                     'sdxl': '⚡ SDXL系',
                     'natural': '🧠 自然言語型'
                 };
-                sdServerSelect.innerHTML = jhtml.html`
-                    ${currentServers.map(s => {
-                        const mType = s.modelType || 'sd15';
-                        const typeLabel = typeLabels[mType] || `🏷️ ${mType}`;
-                        return jhtml.html`
-                            <option value="${s.id}"
-                                    data-desc="${s.description || ''}"
-                                    data-model-type="${mType}"
-                                    data-type-label="${typeLabel}"
-                                    data-url="${s.baseUrl}${s.endpoint}">
-                                ${s.name || s.id} [${typeLabel}] (${s.baseUrl}${s.endpoint})
-                            </option>
-                        `;
-                    })}
-                `;
+                const serverList = currentServers.map(s => {
+                    const mType = s.modelType || 'sd15';
+                    return {
+                        id: s.id,
+                        name: s.name,
+                        mType,
+                        typeLabel: typeLabels[mType] || `🏷️ ${mType}`,
+                        url: `${s.baseUrl}${s.endpoint}`,
+                        description: s.description || ''
+                    };
+                });
+                sdServerSelect.innerHTML = await jhtml.render('tpl-server-options', { servers: serverList });
 
                 const updateServerDetails = (autoApplyDefaults = false) => {
                     const sel = sdServerSelect.options[sdServerSelect.selectedIndex];
@@ -1312,13 +1349,7 @@
             // 解像度プリセット生成
             if (opts.resolutions && Array.isArray(opts.resolutions)) {
                 const resSelect = document.getElementById('resolutionPreset');
-                resSelect.innerHTML = jhtml.html`
-                    ${opts.resolutions.map(r => jhtml.html`
-                        <option value="${r.width}x${r.height}">
-                            ${r.label || `${r.width} x ${r.height}`}
-                        </option>
-                    `)}
-                `;
+                resSelect.innerHTML = await jhtml.render('tpl-resolution-options', { resolutions: opts.resolutions });
 
                 resSelect.addEventListener('change', (e) => {
                     if (e.target.value === 'custom') return;
@@ -1333,11 +1364,7 @@
             // サンプラー生成
             if (opts.samplers && Array.isArray(opts.samplers)) {
                 const samplerSelect = document.getElementById('sampler');
-                samplerSelect.innerHTML = jhtml.html`
-                    ${opts.samplers.map(s => jhtml.html`
-                        <option value="${s.value}">${s.label || s.value}</option>
-                    `)}
-                `;
+                samplerSelect.innerHTML = await jhtml.render('tpl-sampler-options', { samplers: opts.samplers });
                 if (defs.sampler_name) {
                     samplerSelect.value = defs.sampler_name;
                 }
@@ -1375,15 +1402,7 @@
             }
 
             if (themeSelect) {
-                themeSelect.innerHTML = jhtml.html`
-                    ${availableThemes.map(t => jhtml.html`
-                        <option value="${t.id}"
-                                data-desc="${t.description || ''}"
-                                data-icon="${t.icon || ''}">
-                            ${t.icon ? t.icon + ' ' : ''}${t.name}
-                        </option>
-                    `)}
-                `;
+                themeSelect.innerHTML = await jhtml.render('tpl-theme-options', { themes: availableThemes });
                 themeSelect.addEventListener('change', updateThemeDetails);
                 updateThemeDetails();
             }
