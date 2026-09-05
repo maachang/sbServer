@@ -119,20 +119,7 @@
 </div>
 
 <div id="deleteModal" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.6); z-index: 9998; display: none; align-items: center; justify-content: center; padding: 20px;">
-    <div style="background: #ffffff; border-radius: 12px; padding: 24px; max-width: 460px; width: 100%; text-align: center;">
-        <h3 id="deleteModalTitle" style="margin: 0 0 8px 0; font-size: 18px;">削除確認</h3>
-        <p id="deleteModalDesc" style="font-size: 14px; color: #4b5563; margin-bottom: 16px; line-height: 1.5;"></p>
-        <div id="deleteCacheOptionRow" style="margin-bottom: 20px; text-align: left; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 10px 12px; display: none;">
-            <label style="display: flex; align-items: center; cursor: pointer; font-size: 13px; font-weight: 500; color: #991b1b; margin: 0;">
-                <input type="checkbox" id="deleteWithCacheCheck" checked style="margin-right: 8px; width: 16px; height: 16px; accent-color: #dc2626;">
-                <span>💾 <strong id="deleteCacheSizeLabel">ダウンロード済みキャッシュも削除して容量解放</strong></span>
-            </label>
-        </div>
-        <div style="display: flex; gap: 12px;">
-            <button id="confirmDeleteBtn" class="btn btn-danger" style="flex:1;">🗑️ 削除を実行</button>
-            <button id="cancelDeleteBtn" class="btn btn-secondary" style="flex:1;">キャンセル</button>
-        </div>
-    </div>
+    <div id="deleteModalContainer" style="background: #ffffff; border-radius: 12px; padding: 24px; max-width: 460px; width: 100%; text-align: center;"></div>
 </div>
 
 <header>
@@ -409,6 +396,24 @@
     </div>
 </script>
 
+<!-- JHTML 削除確認モーダルテンプレート -->
+<script type="text/jhtml" id="tpl-delete-modal">
+    <h3 style="margin: 0 0 8px 0; font-size: 18px;">${title}</h3>
+    <p style="font-size: 14px; color: #4b5563; margin-bottom: 16px; line-height: 1.5;"><%- desc %></p>
+    <% if (showCacheOption) { %>
+        <div style="margin-bottom: 20px; text-align: left; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 10px 12px;">
+            <label style="display: flex; align-items: center; cursor: pointer; font-size: 13px; font-weight: 500; color: #991b1b; margin: 0;">
+                <input type="checkbox" id="deleteWithCacheCheck" checked style="margin-right: 8px; width: 16px; height: 16px; accent-color: #dc2626;">
+                <span>💾 <strong>ダウンロード済みキャッシュ (${cacheSizeFormatted}) も削除して容量を解放する</strong></span>
+            </label>
+        </div>
+    <% } %>
+    <div style="display: flex; gap: 12px;">
+        <button id="confirmDeleteBtn" class="btn btn-danger" style="flex:1;">🗑️ 削除を実行</button>
+        <button id="cancelDeleteBtn" class="btn btn-secondary" style="flex:1;">キャンセル</button>
+    </div>
+</script>
+
 <script>
     const overlay = document.getElementById('loadingOverlay');
     const overlayTitle = document.getElementById('overlayTitle');
@@ -422,15 +427,7 @@
     const activeProviderDetail = document.getElementById('activeProviderDetail');
 
     const deleteModal = document.getElementById('deleteModal');
-    const deleteModalTitle = document.getElementById('deleteModalTitle');
-    const deleteModalDesc = document.getElementById('deleteModalDesc');
-    const deleteCacheOptionRow = document.getElementById('deleteCacheOptionRow');
-    const deleteCacheSizeLabel = document.getElementById('deleteCacheSizeLabel');
-    const deleteWithCacheCheck = document.getElementById('deleteWithCacheCheck');
-    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
-    const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
-
-    let pendingDeleteAction = null;
+    const deleteModalContainer = document.getElementById('deleteModalContainer');
     let progressPollingTimer = null;
     let currentProvider = 'local';
 
@@ -493,34 +490,29 @@
         }
     }
 
-    function openDeleteModal({ title, desc, showCacheOption, cacheSizeFormatted, onConfirm }) {
-        deleteModalTitle.textContent = title;
-        deleteModalDesc.innerHTML = desc;
-        if (showCacheOption) {
-            deleteCacheOptionRow.style.display = 'block';
-            deleteCacheSizeLabel.textContent = `ダウンロード済みキャッシュ (${cacheSizeFormatted}) も削除して容量を解放する`;
-            deleteWithCacheCheck.checked = true;
-        } else {
-            deleteCacheOptionRow.style.display = 'none';
-        }
-        pendingDeleteAction = onConfirm;
+    async function openDeleteModal({ title, desc, showCacheOption, cacheSizeFormatted, onConfirm }) {
+        deleteModalContainer.innerHTML = await jhtml.render('tpl-delete-modal', {
+            title,
+            desc,
+            showCacheOption: !!showCacheOption,
+            cacheSizeFormatted: cacheSizeFormatted || ''
+        });
+
+        document.getElementById('cancelDeleteBtn').onclick = closeDeleteModal;
+        document.getElementById('confirmDeleteBtn').onclick = async () => {
+            const checkEl = document.getElementById('deleteWithCacheCheck');
+            const deleteCacheChecked = checkEl ? checkEl.checked : false;
+            closeDeleteModal();
+            if (onConfirm) await onConfirm(deleteCacheChecked);
+        };
+
         deleteModal.style.display = 'flex';
     }
 
     function closeDeleteModal() {
         deleteModal.style.display = 'none';
-        pendingDeleteAction = null;
+        deleteModalContainer.innerHTML = '';
     }
-
-    cancelDeleteBtn.addEventListener('click', closeDeleteModal);
-    confirmDeleteBtn.addEventListener('click', async () => {
-        if (pendingDeleteAction) {
-            const deleteCacheChecked = deleteWithCacheCheck.checked;
-            const action = pendingDeleteAction;
-            closeDeleteModal();
-            await action(deleteCacheChecked);
-        }
-    });
 
     async function loadModels() {
         const listEl = document.getElementById('modelList');
