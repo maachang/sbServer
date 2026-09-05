@@ -595,21 +595,25 @@
         }));
 
         listEl.innerHTML = serverHtmlList.join('');
-
-        // ボタンイベント付与
-        document.querySelectorAll('.set-active-btn').forEach(btn => {
-            btn.addEventListener('click', () => setActive(btn.dataset.id));
-        });
-        document.querySelectorAll('.edit-btn').forEach(btn => {
-            btn.addEventListener('click', () => openEditModal(btn.dataset.id));
-        });
-        document.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', () => deleteServer(btn.dataset.id));
-        });
-        document.querySelectorAll('.test-btn').forEach(btn => {
-            btn.addEventListener('click', () => testServer(btn.dataset.id));
-        });
     }
+
+    // イベント委譲で各サーバーカードの操作をハンドリング
+    document.getElementById('serverList').addEventListener('click', (e) => {
+        const target = e.target.closest('button');
+        if (!target) return;
+        const id = target.dataset.id;
+        if (!id) return;
+
+        if (target.classList.contains('set-active-btn')) {
+            setActive(id);
+        } else if (target.classList.contains('edit-btn')) {
+            openEditModal(id);
+        } else if (target.classList.contains('delete-btn')) {
+            deleteServer(id);
+        } else if (target.classList.contains('test-btn')) {
+            testServer(id);
+        }
+    });
 
     function renderDefaults() {
         const defs = serverConfig.defaults || {};
