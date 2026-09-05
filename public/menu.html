@@ -427,9 +427,9 @@
 
 <!-- JHTML カードテンプレート -->
 <script type="text/jhtml" id="tpl-card">
-    <div class="card">
+    <div class="card" data-id="${id}">
         <div class="card-img-wrap">
-            <img src="${image_path}" alt="generated" class="card-img" onclick="openModal('${image_path}')" loading="lazy" />
+            <img src="${image_path}" alt="generated" class="card-img" data-action="preview" data-src="${image_path}" loading="lazy" />
         </div>
         <div class="card-body">
             <div class="card-prompt" title="${prompt}">${prompt}</div>
@@ -453,7 +453,7 @@
             </div>
             <div class="card-actions">
                 <a href="/generate.html?id=${id}" class="btn btn-secondary btn-sm" style="flex:1;">✏️ 編集</a>
-                <button onclick="deleteImage(${id})" class="btn btn-danger btn-sm">🗑️ 削除</button>
+                <button type="button" class="btn btn-danger btn-sm" data-action="delete" data-id="${id}">🗑️ 削除</button>
             </div>
         </div>
     </div>
@@ -652,6 +652,23 @@
     function closeModal() {
         document.getElementById('previewModal').classList.remove('open');
     }
+
+    // グリッド内のイベント委譲（画像プレビュー・削除）
+    document.getElementById('imageGrid').addEventListener('click', (e) => {
+        const previewEl = e.target.closest('[data-action="preview"]');
+        if (previewEl) {
+            const src = previewEl.dataset.src || previewEl.getAttribute('src');
+            if (src) openModal(src);
+            return;
+        }
+
+        const deleteBtn = e.target.closest('[data-action="delete"]');
+        if (deleteBtn) {
+            const id = deleteBtn.dataset.id;
+            if (id) deleteImage(id);
+            return;
+        }
+    });
 
     // 検索イベント設定
     document.getElementById('searchBtn').addEventListener('click', () => {
