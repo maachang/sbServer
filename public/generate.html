@@ -6,6 +6,7 @@
     <title>画像生成 - sdServer</title>
     <link rel="stylesheet" href="/css/common.css">
     <script src="/jhtml.browser.js"></script>
+    <script src="/js/header.js"></script>
     <style>
         .container {
             max-width: 1100px;
@@ -459,18 +460,7 @@
     </div>
 </div>
 
-<header>
-    <div class="header-title">
-        <a href="/menu.html" style="text-decoration: none; color: inherit;">🎨 sdServer</a>
-        <span id="pageModeBadge" style="font-size: 13px; font-weight: normal; color: #6b7280; margin-left: 8px;">新規画像生成</span>
-    </div>
-    <div>
-        <a href="/generate.html?mode=new" class="btn btn-primary" style="margin-right: 8px;" title="プロンプトを初期化して新規作成を開始します">➕ 新規作成</a>
-        <a href="/sdServers.html" class="btn btn-secondary" style="margin-right: 8px;">⚙️ sd-server設定</a>
-        <a href="/models.html" class="btn btn-secondary" style="margin-right: 8px;">🤖 LLM設定</a>
-        <a href="/menu.html" class="btn btn-secondary">一覧へ戻る</a>
-    </div>
-</header>
+<header data-current-page="generate" data-sub-title="新規画像生成" data-badge-id="pageModeBadge"></header>
 
 <div class="container">
     <!-- 左ペイン: 生成フォーム -->
@@ -1421,10 +1411,14 @@
     });
 
     async function initPage() {
+        if (window.headerInitPromise) {
+            await window.headerInitPromise;
+        }
         await loadConfig();
 
         if (currentEditId) {
-            document.getElementById('pageModeBadge').textContent = `画像編集 (元画像 #${currentEditId})`;
+            const modeBadge = document.getElementById('pageModeBadge');
+            if (modeBadge) modeBadge.textContent = `画像編集 (元画像 #${currentEditId})`;
             document.getElementById('editAlert').style.display = 'block';
             document.getElementById('parentId').value = currentEditId;
 

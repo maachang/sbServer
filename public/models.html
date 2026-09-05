@@ -6,6 +6,7 @@
     <title>LLM アシスト・翻訳設定 - sdServer</title>
     <link rel="stylesheet" href="/css/common.css">
     <script src="/jhtml.browser.js"></script>
+    <script src="/js/header.js"></script>
     <style>
         .container { max-width: 1000px; margin: 0 auto; padding: 24px 16px; }
 
@@ -122,17 +123,7 @@
     <div id="deleteModalContainer" style="background: #ffffff; border-radius: 12px; padding: 24px; max-width: 460px; width: 100%; text-align: center;"></div>
 </div>
 
-<header>
-    <div class="header-title">
-        <a href="/menu.html" style="text-decoration: none; color: inherit;">🎨 sdServer</a>
-        <span style="font-size: 13px; font-weight: normal; color: #6b7280; margin-left: 8px;">🤖 LLM アシスト・翻訳設定</span>
-    </div>
-    <div class="header-actions">
-        <a href="/sdServers.html" class="btn btn-secondary">⚙️ sd-server設定</a>
-        <a href="/generate.html?mode=new" class="btn btn-primary">➕ 新規作成</a>
-        <a href="/menu.html" class="btn btn-secondary">一覧へ戻る</a>
-    </div>
-</header>
+<header data-current-page="models" data-sub-title="🤖 LLM アシスト・翻訳設定"></header>
 
 <div class="container">
     <div id="statusAlert" class="alert-box"></div>
