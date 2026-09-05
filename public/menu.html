@@ -459,6 +459,21 @@
     </div>
 </script>
 
+<!-- JHTML ページネーションテンプレート -->
+<script type="text/jhtml" id="tpl-pagination">
+    <button class="page-btn" <%= currentPage === 1 ? 'disabled' : '' %> onclick="goToPage(1)" title="最初のページ">«</button>
+    <button class="page-btn" <%= currentPage === 1 ? 'disabled' : '' %> onclick="goToPage(<%= currentPage - 1 %>)">‹ 前へ</button>
+    <% pages.forEach(p => { %>
+        <% if (p === '...') { %>
+            <span class="page-ellipsis">…</span>
+        <% } else { %>
+            <button class="page-btn <%= p === currentPage ? 'active' : '' %>" <%= p === currentPage ? 'disabled' : '' %> onclick="goToPage(<%= p %>)">${p}</button>
+        <% } %>
+    <% }); %>
+    <button class="page-btn" <%= currentPage === totalPages ? 'disabled' : '' %> onclick="goToPage(<%= currentPage + 1 %>)">次へ ›</button>
+    <button class="page-btn" <%= currentPage === totalPages ? 'disabled' : '' %> onclick="goToPage(<%= totalPages %>)" title="最後のページ">»</button>
+</script>
+
 <script>
     let currentOffset = 0;
     const perPageSelectEl = document.getElementById('perPageSelect');
@@ -540,7 +555,7 @@
 
             grid.innerHTML = cardHtmlList.join('');
 
-            renderPagination(data.total, data.limit, data.offset);
+            await renderPagination(data.total, data.limit, data.offset);
 
         } catch (e) {
             loading.style.display = 'none';
@@ -548,7 +563,7 @@
         }
     }
 
-    function renderPagination(total, limit, offset) {
+    async function renderPagination(total, limit, offset) {
         const topContainer = document.getElementById('paginationTopContainer');
         const topInfoEl = document.getElementById('paginationTopInfo');
         const topControlsEl = document.getElementById('paginationTopControls');
@@ -567,76 +582,23 @@
 
         const currentPage = Math.floor(offset / limit) + 1;
         const infoHtml = `ページ <strong>${currentPage}</strong> / ${totalPages} (全 ${total} 件)`;
+        const pages = getPaginationPages(currentPage, totalPages);
 
-        function populateControls(controlsEl) {
-            if (!controlsEl) return;
-            controlsEl.innerHTML = '';
-
-            // 「« 最初」ボタン
-            const firstBtn = document.createElement('button');
-            firstBtn.className = 'page-btn';
-            firstBtn.innerHTML = '«';
-            firstBtn.title = '最初のページ';
-            firstBtn.disabled = (currentPage === 1);
-            firstBtn.onclick = () => { goToPage(1); };
-            controlsEl.appendChild(firstBtn);
-
-            // 「‹ 前へ」ボタン
-            const prevBtn = document.createElement('button');
-            prevBtn.className = 'page-btn';
-            prevBtn.innerHTML = '‹ 前へ';
-            prevBtn.disabled = (currentPage === 1);
-            prevBtn.onclick = () => { goToPage(currentPage - 1); };
-            controlsEl.appendChild(prevBtn);
-
-            // ページ番号ボタンの生成
-            const pages = getPaginationPages(currentPage, totalPages);
-            pages.forEach(p => {
-                if (p === '...') {
-                    const dots = document.createElement('span');
-                    dots.className = 'page-ellipsis';
-                    dots.textContent = '…';
-                    controlsEl.appendChild(dots);
-                } else {
-                    const btn = document.createElement('button');
-                    btn.className = `page-btn ${p === currentPage ? 'active' : ''}`;
-                    btn.textContent = p;
-                    if (p === currentPage) {
-                        btn.disabled = true;
-                    } else {
-                        btn.onclick = () => { goToPage(p); };
-                    }
-                    controlsEl.appendChild(btn);
-                }
-            });
-
-            // 「次へ ›」ボタン
-            const nextBtn = document.createElement('button');
-            nextBtn.className = 'page-btn';
-            nextBtn.innerHTML = '次へ ›';
-            nextBtn.disabled = (currentPage === totalPages);
-            nextBtn.onclick = () => { goToPage(currentPage + 1); };
-            controlsEl.appendChild(nextBtn);
-
-            // 「最後 »」ボタン
-            const lastBtn = document.createElement('button');
-            lastBtn.className = 'page-btn';
-            lastBtn.innerHTML = '»';
-            lastBtn.title = '最後のページ';
-            lastBtn.disabled = (currentPage === totalPages);
-            lastBtn.onclick = () => { goToPage(totalPages); };
-            controlsEl.appendChild(lastBtn);
-        }
+        const paginationButtonsHtml = await jhtml.render('tpl-pagination', {
+            currentPage,
+            totalPages,
+            pages
+        });
 
         if (topContainer && topInfoEl && topControlsEl) {
             topInfoEl.innerHTML = infoHtml;
-            populateControls(topControlsEl);
+            topControlsEl.innerHTML = paginationButtonsHtml;
             topContainer.style.display = 'flex';
         }
 
         if (bottomContainer && bottomInfoEl && bottomControlsEl) {
             bottomInfoEl.innerHTML = infoHtml;
-            populateControls(bottomControlsEl);
+            bottomControlsEl.innerHTML = paginationButtonsHtml;
             bottomContainer.style.display = 'flex';
         }
     }

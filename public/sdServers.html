@@ -527,14 +527,14 @@
             }
 
             serverConfig = json.data;
-            renderServers();
+            await renderServers();
             renderDefaults();
         } catch (e) {
             showAlert('通信エラー: ' + e.message, true);
         }
     }
 
-    function renderServers() {
+    async function renderServers() {
         const listEl = document.getElementById('serverList');
         listEl.innerHTML = '';
 

@@ -655,19 +655,10 @@
             const json = await res.json();
             if (json.success && json.data?.models?.length > 0) {
                 const models = json.data.models;
-                selectEl.innerHTML = '';
-                
-                models.forEach(m => {
-                    const opt = document.createElement('option');
-                    opt.value = m;
-                    opt.textContent = m;
-                    selectEl.appendChild(opt);
-                });
-
-                const customOpt = document.createElement('option');
-                customOpt.value = '__custom__';
-                customOpt.textContent = '✏️ 手動で自由入力...';
-                selectEl.appendChild(customOpt);
+                selectEl.innerHTML = jhtml.html`
+                    ${models.map(m => jhtml.html`<option value="${m}">${m}</option>`)}
+                    <option value="__custom__">✏️ 手動で自由入力...</option>
+                `;
 
                 // 現在の入力値があればそれを選択
                 const currentVal = inputEl.value.trim();
@@ -780,19 +771,10 @@
             if (json.success && json.data?.models?.length > 0) {
                 const models = json.data.models;
                 const currentVal = selectEl.value;
-                selectEl.innerHTML = '';
-
-                models.forEach(m => {
-                    const opt = document.createElement('option');
-                    opt.value = m;
-                    opt.textContent = m;
-                    selectEl.appendChild(opt);
-                });
-
-                const customOpt = document.createElement('option');
-                customOpt.value = 'custom';
-                customOpt.textContent = '✏️ その他 (カスタムモデル指定)';
-                selectEl.appendChild(customOpt);
+                selectEl.innerHTML = jhtml.html`
+                    ${models.map(m => jhtml.html`<option value="${m}">${m}</option>`)}
+                    <option value="custom">✏️ その他 (カスタムモデル指定)</option>
+                `;
 
                 if (models.includes(currentVal)) {
                     selectEl.value = currentVal;
