@@ -360,13 +360,13 @@
             <% } else if (currentProvider === 'local' && isConfigured) { %>
                 <button disabled class="btn btn-secondary btn-sm" style="font-weight: 600; color: #2563eb; cursor: default;">✔ 選択中</button>
             <% } else { %>
-                <button onclick="switchModel('${id}')" class="btn btn-primary btn-sm"><%= isCached ? '🔄 このモデルを選択' : '⬇️ ダウンロードして選択' %></button>
+                <button type="button" data-action="switch" data-model-id="${id}" class="btn btn-primary btn-sm"><%= isCached ? '🔄 このモデルを選択' : '⬇️ ダウンロードして選択' %></button>
             <% } %>
             <% if (isCached && !isLoaded && !(currentProvider === 'local' && isConfigured)) { %>
-                <button onclick="deleteCacheOnly('${id}', '${cacheSize || ''}')" class="btn btn-warning btn-sm" title="キャッシュ削除">💾 キャッシュ削除</button>
+                <button type="button" data-action="delete-cache" data-model-id="${id}" data-cache-size="${cacheSize || ''}" class="btn btn-warning btn-sm" title="キャッシュ削除">💾 キャッシュ削除</button>
             <% } %>
             <% if (totalCount > 1 && !isLoaded && !(currentProvider === 'local' && isConfigured)) { %>
-                <button onclick="deleteModelItem('${id}', <%= isCached %>, '${cacheSize || ''}')" class="btn btn-outline-danger btn-sm" title="一覧から削除">🗑️ 項目削除</button>
+                <button type="button" data-action="delete-item" data-model-id="${id}" data-cached="<%= isCached ? 'true' : 'false' %>" data-cache-size="${cacheSize || ''}" class="btn btn-outline-danger btn-sm" title="一覧から削除">🗑️ 項目削除</button>
             <% } %>
         </div>
     </div>
@@ -374,15 +374,15 @@
 
 <!-- JHTML 孤立キャッシュアイテムテンプレート -->
 <script type="text/jhtml" id="tpl-orphan-item">
-    <div class="model-item" style="background: #ffffff;">
+    <div class="model-item" style="background: #ffffff;" data-model-id="${id}">
         <div class="model-info">
             <div class="model-name" style="color: #9a3412;">📦 ${id}</div>
             <div class="model-id">${id}</div>
             <div class="model-badges"><span class="badge badge-orphan">💾 キャッシュ容量: ${sizeFormatted}</span></div>
         </div>
         <div class="model-actions">
-            <button onclick="restoreOrphanModel('${id}')" class="btn btn-secondary btn-sm">➕ 一覧に再追加</button>
-            <button onclick="deleteOrphanCache('${id}', '${sizeFormatted}')" class="btn btn-danger btn-sm">🗑️ キャッシュ完全消去</button>
+            <button type="button" data-action="restore-orphan" data-model-id="${id}" class="btn btn-secondary btn-sm">➕ 一覧に再追加</button>
+            <button type="button" data-action="delete-orphan" data-model-id="${id}" data-cache-size="${sizeFormatted}" class="btn btn-danger btn-sm">🗑️ キャッシュ完全消去</button>
         </div>
     </div>
 </script>
@@ -904,6 +904,51 @@
             if (json.success) { showAlert(`モデル [${modelId}] を追加しました`); document.getElementById('addModelForm').reset(); loadModels(); }
             else showAlert(`追加失敗: ${json.error}`, true);
         } catch (e) { showAlert(`通信エラー: ${e.message}`, true); }
+    });
+
+    // モデル一覧のイベント委譲（モデル切り替え・キャッシュ削除・項目削除）
+    document.getElementById('modelList')?.addEventListener('click', (e) => {
+        const switchBtn = e.target.closest('[data-action="switch"]');
+        if (switchBtn) {
+            const mid = switchBtn.dataset.modelId;
+            if (mid) switchModel(mid);
+            return;
+        }
+
+        const delCacheBtn = e.target.closest('[data-action="delete-cache"]');
+        if (delCacheBtn) {
+            const mid = delCacheBtn.dataset.modelId;
+            const size = delCacheBtn.dataset.cacheSize;
+            if (mid) deleteCacheOnly(mid, size);
+            return;
+        }
+
+        const delItemBtn = e.target.closest('[data-action="delete-item"]');
+        if (delItemBtn) {
+            const mid = delItemBtn.dataset.modelId;
+            const isCached = delItemBtn.dataset.cached === 'true';
+            const size = delItemBtn.dataset.cacheSize;
+            if (mid) deleteModelItem(mid, isCached, size);
+            return;
+        }
+    });
+
+    // 孤立キャッシュ一覧のイベント委譲（再追加・完全消去）
+    document.getElementById('orphanCacheList')?.addEventListener('click', (e) => {
+        const restoreBtn = e.target.closest('[data-action="restore-orphan"]');
+        if (restoreBtn) {
+            const mid = restoreBtn.dataset.modelId;
+            if (mid) restoreOrphanModel(mid);
+            return;
+        }
+
+        const delOrphanBtn = e.target.closest('[data-action="delete-orphan"]');
+        if (delOrphanBtn) {
+            const mid = delOrphanBtn.dataset.modelId;
+            const size = delOrphanBtn.dataset.cacheSize;
+            if (mid) deleteOrphanCache(mid, size);
+            return;
+        }
     });
 
     document.getElementById('globalRefreshBtn').addEventListener('click', loadModels);

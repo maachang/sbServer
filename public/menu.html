@@ -452,17 +452,17 @@
 
 <!-- JHTML ページネーションテンプレート -->
 <script type="text/jhtml" id="tpl-pagination">
-    <button class="page-btn" <%= currentPage === 1 ? 'disabled' : '' %> onclick="goToPage(1)" title="最初のページ">«</button>
-    <button class="page-btn" <%= currentPage === 1 ? 'disabled' : '' %> onclick="goToPage(<%= currentPage - 1 %>)">‹ 前へ</button>
+    <button class="page-btn" <%= currentPage === 1 ? 'disabled' : '' %> data-page="1" title="最初のページ">«</button>
+    <button class="page-btn" <%= currentPage === 1 ? 'disabled' : '' %> data-page="<%= currentPage - 1 %>">‹ 前へ</button>
     <% pages.forEach(p => { %>
         <% if (p === '...') { %>
             <span class="page-ellipsis">…</span>
         <% } else { %>
-            <button class="page-btn <%= p === currentPage ? 'active' : '' %>" <%= p === currentPage ? 'disabled' : '' %> onclick="goToPage(<%= p %>)">${p}</button>
+            <button class="page-btn <%= p === currentPage ? 'active' : '' %>" <%= p === currentPage ? 'disabled' : '' %> data-page="<%= p %>">${p}</button>
         <% } %>
     <% }); %>
-    <button class="page-btn" <%= currentPage === totalPages ? 'disabled' : '' %> onclick="goToPage(<%= currentPage + 1 %>)">次へ ›</button>
-    <button class="page-btn" <%= currentPage === totalPages ? 'disabled' : '' %> onclick="goToPage(<%= totalPages %>)" title="最後のページ">»</button>
+    <button class="page-btn" <%= currentPage === totalPages ? 'disabled' : '' %> data-page="<%= currentPage + 1 %>">次へ ›</button>
+    <button class="page-btn" <%= currentPage === totalPages ? 'disabled' : '' %> data-page="<%= totalPages %>" title="最後のページ">»</button>
 </script>
 
 <script>
@@ -660,6 +660,18 @@
             return;
         }
     });
+
+    // ページネーションのイベント委譲
+    function handlePaginationClick(e) {
+        const btn = e.target.closest('button[data-page]');
+        if (!btn || btn.disabled) return;
+        const page = parseInt(btn.dataset.page, 10);
+        if (page && !isNaN(page)) {
+            goToPage(page);
+        }
+    }
+    document.getElementById('paginationTopControls')?.addEventListener('click', handlePaginationClick);
+    document.getElementById('paginationControls')?.addEventListener('click', handlePaginationClick);
 
     // 検索イベント設定
     document.getElementById('searchBtn').addEventListener('click', () => {
