@@ -96,5 +96,22 @@
         return Promise.resolve();
     }
 
-    global.headerInitPromise = initHeader();
+    // DOMContentLoaded または 即時実行 (DOM準備完了に合わせる)
+    let _resolveInit;
+    global.headerInitPromise = new Promise(resolve => {
+        _resolveInit = resolve;
+    });
+
+    function runInit() {
+        initHeader().then(_resolveInit).catch(err => {
+            console.error('[header.js] ヘッダー初期化エラー:', err);
+            _resolveInit();
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', runInit);
+    } else {
+        runInit();
+    }
 })(window);
