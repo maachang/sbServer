@@ -510,6 +510,15 @@
         deleteModalContainer.innerHTML = '';
     }
 
+    deleteModal.addEventListener('click', (e) => {
+        if (e.target === deleteModal) closeDeleteModal();
+    });
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && deleteModal.style.display === 'flex') {
+            closeDeleteModal();
+        }
+    });
+
     async function loadModels() {
         const listEl = document.getElementById('modelList');
         const orphanCard = document.getElementById('orphanCacheCard');
@@ -626,7 +635,7 @@
         const noteEl = document.getElementById('extFetchNote');
 
         if (!endpoint) {
-            alert('エンドポイント URL を入力してください');
+            showToast('エンドポイント URL を入力してください', 'warning');
             return;
         }
 
@@ -696,7 +705,7 @@
         const model = document.getElementById('extModel').value.trim();
         const apiKey = document.getElementById('extApiKey').value.trim();
         const resultBox = document.getElementById('extTestResult');
-        if (!endpoint) { alert('エンドポイント URL を入力してください'); return; }
+        if (!endpoint) { showToast('エンドポイント URL を入力してください', 'warning'); return; }
         resultBox.style.background = '#f3f4f6'; resultBox.style.color = '#374151'; resultBox.style.border = '1px solid #d1d5db';
         resultBox.innerHTML = '⏳ 外部サーバーに接続テスト中...'; resultBox.style.display = 'block';
         try {
@@ -719,7 +728,7 @@
         const endpoint = document.getElementById('extEndpoint').value.trim();
         const model = document.getElementById('extModel').value.trim() || 'default';
         const apiKey = document.getElementById('extApiKey').value.trim();
-        if (!endpoint) { alert('エンドポイント URL を入力してください'); return; }
+        if (!endpoint) { showToast('エンドポイント URL を入力してください', 'warning'); return; }
         try {
             const res = await fetch('/api/models?action=saveExternal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint, model, apiKey }) });
             const json = await res.json();
@@ -741,7 +750,7 @@
         const selectEl = document.getElementById('oaiModelSelect');
 
         if (!apiKey) {
-            alert('OpenAI API キーを入力してください');
+            showToast('OpenAI API キーを入力してください', 'warning');
             return;
         }
 
@@ -793,7 +802,7 @@
         const mSelect = document.getElementById('oaiModelSelect').value;
         const model = (mSelect === 'custom') ? document.getElementById('oaiCustomModel').value.trim() : mSelect;
         const resultBox = document.getElementById('oaiTestResult');
-        if (!apiKey) { alert('OpenAI API キーを入力してください'); return; }
+        if (!apiKey) { showToast('OpenAI API キーを入力してください', 'warning'); return; }
         resultBox.style.background = '#f3f4f6'; resultBox.style.color = '#374151'; resultBox.style.border = '1px solid #d1d5db';
         resultBox.innerHTML = '⏳ OpenAI API に接続テスト中...'; resultBox.style.display = 'block';
         try {
@@ -816,7 +825,7 @@
         const apiKey = document.getElementById('oaiApiKey').value.trim();
         const mSelect = document.getElementById('oaiModelSelect').value;
         const model = (mSelect === 'custom') ? document.getElementById('oaiCustomModel').value.trim() : mSelect;
-        if (!apiKey) { alert('OpenAI API キーを入力してください'); return; }
+        if (!apiKey) { showToast('OpenAI API キーを入力してください', 'warning'); return; }
         try {
             const res = await fetch('/api/models?action=saveOpenAI', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ apiKey, model }) });
             const json = await res.json();
