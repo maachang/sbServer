@@ -38,6 +38,10 @@
 - **既存コメントの維持**: 処理内容が変わって意味が通じなくなる場合を除き、既存コメントを削除しない。
 - **言語ルール**: コメントおよびユーザーへの返答・要約・説明文は常に**日本語**で記述する。
 - **バグ修正フロー**: バグやエラーの原因調査を依頼された場合、即座に修正せず、まず原因と修正方針を報告して承認を得てから修正に着手する。
+- **実装状況と設計案の峻別**: 「現状のコードで既に実装されていること」と「改修すれば実現可能な設計上のアイデア」を絶対に混同して回答しない。未実装の機能をあたかも利用可能であるかのように説明してはならない。
+- **エラー発生時の責任転嫁・安易な回答の禁止**: 動作不良やエラーが発生した際、コードの実態（未実装・考慮漏れ）を確認せずに安易に「〇〇をコピーしてください」「〇〇を再設定してください」などユーザー側の運用に責任を押し付ける回答をしない。まずフレームワークやサーバーコード側の実装状態を正確に検証し、何が足りていないのか（コード改修が必要なのか、運用操作が必要なのか）を客観的・正確に説明すること。
+- **フロントエンド DOM 操作 & 画面スクリプトにおける `jhtml.browser.js` の利用義務**:
+  HTML 内で動的 DOM 操作、イベント登録、API 通信、フォーム入出力、要素表示制御、進捗監視（ポーリング等）を行うクライアントサイドスクリプトを作成・改修する際は、生の `document.getElementById` や生 `fetch`、インライン `onclick`、独自 `escapeHtml` などをベタ書きせず、必ず `<script src="/jhtml.browser.js"></script>` を読み込み、`jhtml.html`, `jhtml.$`, `jhtml.refs`, `jhtml.on`, `jhtml.api`, `jhtml.form`, `jhtml.show/hide`, `jhtml.poll` などの提供ユーティリティを利用すること。
 - **CommonJS 形式**: モジュールやスクリプトは CommonJS 形式（`require` / `module.exports`）で統一する。
 
 # maachang フレームワーク原則 & アーキテクチャ
@@ -169,6 +173,29 @@ maachang の `*.mt.js` / `*.mt.html` (JHTML) / `filter.mt.js` 内では以下の
 - **`fileUtil.readText(path)` / `fileUtil.writeText(path, text)`**: テキストファイルの読み書き。
 - **`fileUtil.list(dir, { ext, recursive })`**: 拡張子フィルタ・再帰探索付きファイル一覧。
 - **`fileUtil.safeFileName(origName, allowedExts, prefix)`**: アップロードファイル名の安全な生成。
+
+### 10. `jhtml.browser.js`（フロントエンド・ブラウザ用 JHTML ランタイム）
+- **役割**: ブラウザ側（クライアントサイド）での動的 DOM 構築やテンプレートレンダリング。外部依存ゼロ（Pure JS）。
+- **配置・読み込み方針**:
+  - HTML 側で `<script src="/jhtml.browser.js"></script>` を読み込むだけで即利用可能。
+  - プロジェクト側の `public/` にファイルがなくても、サーバーがフレームワーク本体（`$MAACHANG_HOME/public/`）から自動フォールバック配信するため、コピーなしで動作する。
+  - プロジェクト側でカスタマイズしたい場合は `public/jhtml.browser.js` を配置すれば優先される。
+- **主な機能**:
+  - `jhtml.html`...``: 自動エスケープ（XSS対策）付きタグ付きテンプレートリテラル。
+  - `jhtml.raw(str)`: 生 HTML の混在出力。
+  - `jhtml.render('template-id', data)`: `<script type="text/jhtml">` テンプレートのブラウザ側コンパイル＆実行。
+  - `jhtml.renderTo('target-id', 'template-id', data)`: レンダリング結果を指定要素の innerHTML に直接反映。
+  - `jhtml.$('id')` / `jhtml.$$('selector')`: 単一・複数 DOM 取得ショートカット。
+  - `jhtml.refs('id1', 'id2', ...)`: 複数要素の一括取得（分割代入で大量の `getElementById` を 1行化）。
+  - `jhtml.on(target, event, [selector], handler)`: 直接イベント登録および動的要素向けのイベント委任。
+  - `jhtml.api`: 自動 JSON パース、Content-Type 付与、ローディング要素連動付き軽量 fetch クライアント (`api.get`, `api.post`, `api.put`, `api.del`)。
+  - `jhtml.form(container)` / `jhtml.form.fill(container, data)`: フォーム入力値のオブジェクト一括取得および一括流し込み。
+  - `jhtml.show` / `jhtml.hide` / `jhtml.toggle` / `jhtml.addClass` / `jhtml.removeClass`: 表示制御およびクラス操作糖衣構文。
+  - `jhtml.state(init, onChange)`: プロパティ更新で画面が連動する極小リアクティブ状態オブジェクト。
+  - `jhtml.format`: バイト数表記 (`format.bytes`)、金額 (`format.money`)、日付 (`format.date`)、省略 (`format.truncate`)。
+  - `jhtml.poll(fn, opts)`: プログレス監視・完了判定付き定期ポーリング。
+  - `jhtml.toast` / `jhtml.alert`: トースト通知およびアラート要素への自動消去メッセージ注入。
+  - `jhtml.storage`: JSON 自動シリアライズ対応 localStorage / sessionStorage ラッパー。
 
 ---
 

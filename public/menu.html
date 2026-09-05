@@ -348,6 +348,28 @@
             max-height: 90vh;
             border-radius: 6px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+            cursor: default;
+        }
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 24px;
+            font-size: 28px;
+            color: #ffffff;
+            background: rgba(0, 0, 0, 0.4);
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s ease, transform 0.15s ease;
+        }
+        .modal-close:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: scale(1.1);
         }
     </style>
 </head>
@@ -413,7 +435,8 @@
 </div>
 
 <!-- プレビューモーダル -->
-<div id="previewModal" class="modal" onclick="closeModal()">
+<div id="previewModal" class="modal" data-action="close-modal">
+    <button type="button" class="modal-close" data-action="close-modal" title="閉じる (Esc)">✕</button>
     <img id="modalImg" class="modal-content" src="" alt="Preview">
 </div>
 
@@ -505,7 +528,7 @@
             loading.style.display = 'none';
 
             if (!data.success) {
-                alert('画像取得エラー: ' + (data.error || '不明なエラー'));
+                showToast('画像取得エラー: ' + (data.error || '不明なエラー'), 'error');
                 return;
             }
 
@@ -551,7 +574,7 @@
 
         } catch (e) {
             loading.style.display = 'none';
-            alert('通信エラー: ' + e.message);
+            showToast('通信エラー: ' + e.message, 'error');
         }
     }
 
@@ -625,12 +648,13 @@
             });
             const data = await res.json();
             if (data.success) {
+                showToast('画像を削除しました', 'success');
                 loadImages(currentOffset);
             } else {
-                alert('削除失敗: ' + (data.error || '不明なエラー'));
+                showToast('削除失敗: ' + (data.error || '不明なエラー'), 'error');
             }
         } catch (e) {
-            alert('通信エラー: ' + e.message);
+            showToast('通信エラー: ' + e.message, 'error');
         }
     }
 
@@ -642,8 +666,27 @@
     }
 
     function closeModal() {
-        document.getElementById('previewModal').classList.remove('open');
+        const modal = document.getElementById('previewModal');
+        if (modal) {
+            modal.classList.remove('open');
+        }
     }
+
+    // プレビューモーダルのイベント（背景クリック・閉じるボタン・Escapeキー）
+    const previewModalEl = document.getElementById('previewModal');
+    if (previewModalEl) {
+        previewModalEl.addEventListener('click', (e) => {
+            if (e.target === previewModalEl || e.target.closest('[data-action="close-modal"]')) {
+                closeModal();
+            }
+        });
+    }
+
+    window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && previewModalEl && previewModalEl.classList.contains('open')) {
+            closeModal();
+        }
+    });
 
     // グリッド内のイベント委譲（画像プレビュー・削除）
     document.getElementById('imageGrid').addEventListener('click', (e) => {
