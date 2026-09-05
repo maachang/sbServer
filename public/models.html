@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LLM アシスト・翻訳設定 - sdServer</title>
     <link rel="stylesheet" href="/css/common.css">
+    <script src="/jhtml.browser.js"></script>
     <style>
         .container { max-width: 1000px; margin: 0 auto; padding: 24px 16px; }
 
@@ -348,9 +349,65 @@
                 <div id="oaiTestResult" class="test-result-box"></div>
             </form>
         </div>
-    </div>
-
 </div>
+
+<!-- JHTML モデルアイテムテンプレート -->
+<script type="text/jhtml" id="tpl-model-item">
+    <div class="model-item <%= isActive ? 'active' : '' %>">
+        <div class="model-info">
+            <div class="model-name">${name || id}</div>
+            <div class="model-id">${id}</div>
+            <% if (description) { %>
+                <div class="model-desc">${description}</div>
+            <% } %>
+            <div class="model-badges">
+                <% if (isLoaded && currentProvider === 'local') { %>
+                    <span class="badge badge-resident">⚡ メモリ常駐中</span>
+                <% } else if (isConfigured && currentProvider === 'local') { %>
+                    <span class="badge badge-active">✔ 設定選択中</span>
+                <% } %>
+                <% if (isCached) { %>
+                    <span class="badge badge-cached">💾 ダウンロード済 (${cacheSize || ''})</span>
+                <% } else { %>
+                    <span class="badge">☁️ 未ダウンロード</span>
+                <% } %>
+                <% if (dtype) { %>
+                    <span class="badge">${dtype}</span>
+                <% } %>
+            </div>
+        </div>
+        <div class="model-actions">
+            <% if (currentProvider === 'local' && isLoaded) { %>
+                <button disabled class="btn btn-secondary btn-sm" style="font-weight: 600; color: #059669; cursor: default;">✅ 選択・常駐中</button>
+            <% } else if (currentProvider === 'local' && isConfigured) { %>
+                <button disabled class="btn btn-secondary btn-sm" style="font-weight: 600; color: #2563eb; cursor: default;">✔ 選択中</button>
+            <% } else { %>
+                <button onclick="switchModel('${id}')" class="btn btn-primary btn-sm"><%= isCached ? '🔄 このモデルを選択' : '⬇️ ダウンロードして選択' %></button>
+            <% } %>
+            <% if (isCached && !isLoaded && !(currentProvider === 'local' && isConfigured)) { %>
+                <button onclick="deleteCacheOnly('${id}', '${cacheSize || ''}')" class="btn btn-warning btn-sm" title="キャッシュ削除">💾 キャッシュ削除</button>
+            <% } %>
+            <% if (totalCount > 1 && !isLoaded && !(currentProvider === 'local' && isConfigured)) { %>
+                <button onclick="deleteModelItem('${id}', <%= isCached %>, '${cacheSize || ''}')" class="btn btn-outline-danger btn-sm" title="一覧から削除">🗑️ 項目削除</button>
+            <% } %>
+        </div>
+    </div>
+</script>
+
+<!-- JHTML 孤立キャッシュアイテムテンプレート -->
+<script type="text/jhtml" id="tpl-orphan-item">
+    <div class="model-item" style="background: #ffffff;">
+        <div class="model-info">
+            <div class="model-name" style="color: #9a3412;">📦 ${id}</div>
+            <div class="model-id">${id}</div>
+            <div class="model-badges"><span class="badge badge-orphan">💾 キャッシュ容量: ${sizeFormatted}</span></div>
+        </div>
+        <div class="model-actions">
+            <button onclick="restoreOrphanModel('${id}')" class="btn btn-secondary btn-sm">➕ 一覧に再追加</button>
+            <button onclick="deleteOrphanCache('${id}', '${sizeFormatted}')" class="btn btn-danger btn-sm">🗑️ キャッシュ完全消去</button>
+        </div>
+    </div>
+</script>
 
 <script>
     const overlay = document.getElementById('loadingOverlay');
@@ -526,78 +583,29 @@
                 }
             }
 
-            listEl.innerHTML = '';
             if (models.length === 0) {
                 listEl.innerHTML = '<div style="color: #9ca3af; padding: 10px;">登録されているモデルがありません。</div>';
             } else {
-                models.forEach(m => {
-                    const item = document.createElement('div');
-                    item.className = `model-item ${m.isActive ? 'active' : ''}`;
-                    let badgesHtml = '';
-                    if (m.isLoaded && currentProvider === 'local') {
-                        badgesHtml += '<span class="badge badge-resident">⚡ メモリ常駐中</span>';
-                    } else if (m.isConfigured && currentProvider === 'local') {
-                        badgesHtml += '<span class="badge badge-active">✔ 設定選択中</span>';
-                    }
-
-                    if (m.isCached) badgesHtml += `<span class="badge badge-cached">💾 ダウンロード済 (${escapeHtml(m.cacheSize || '')})</span>`;
-                    else badgesHtml += '<span class="badge">☁️ 未ダウンロード</span>';
-
-                    if (m.dtype) badgesHtml += `<span class="badge">${m.dtype}</span>`;
-
-                    let actionBtnHtml = '';
-                    if (currentProvider === 'local' && m.isLoaded) {
-                        actionBtnHtml = '<button disabled class="btn btn-secondary btn-sm" style="font-weight: 600; color: #059669; cursor: default;">✅ 選択・常駐中</button>';
-                    } else if (currentProvider === 'local' && m.isConfigured) {
-                        actionBtnHtml = '<button disabled class="btn btn-secondary btn-sm" style="font-weight: 600; color: #2563eb; cursor: default;">✔ 選択中</button>';
-                    } else {
-                        const btnLabel = m.isCached ? '🔄 このモデルを選択' : '⬇️ ダウンロードして選択';
-                        actionBtnHtml = `<button onclick="switchModel('${escapeHtml(m.id)}')" class="btn btn-primary btn-sm">${btnLabel}</button>`;
-                    }
-
-                    let cacheDeleteBtnHtml = (m.isCached && !m.isLoaded && !(currentProvider === 'local' && m.isConfigured)) ? 
-                        `<button onclick="deleteCacheOnly('${escapeHtml(m.id)}', '${escapeHtml(m.cacheSize || '')}')" class="btn btn-warning btn-sm" title="キャッシュ削除">💾 キャッシュ削除</button>` : '';
-
-                    let itemDeleteBtnHtml = (models.length > 1 && !m.isLoaded && !(currentProvider === 'local' && m.isConfigured)) ? 
-                        `<button onclick="deleteModelItem('${escapeHtml(m.id)}', ${m.isCached}, '${escapeHtml(m.cacheSize || '')}')" class="btn btn-outline-danger btn-sm" title="一覧から削除">🗑️ 項目削除</button>` : '';
-
-                    item.innerHTML = `
-                        <div class="model-info">
-                            <div class="model-name">${escapeHtml(m.name || m.id)}</div>
-                            <div class="model-id">${escapeHtml(m.id)}</div>
-                            ${m.description ? `<div class="model-desc">${escapeHtml(m.description)}</div>` : ''}
-                            <div class="model-badges">${badgesHtml}</div>
-                        </div>
-                        <div class="model-actions">${actionBtnHtml}${cacheDeleteBtnHtml}${itemDeleteBtnHtml}</div>
-                    `;
-                    listEl.appendChild(item);
-                });
+                const modelHtmlList = await Promise.all(models.map(m => {
+                    return jhtml.render('tpl-model-item', {
+                        ...m,
+                        currentProvider,
+                        totalCount: models.length
+                    });
+                }));
+                listEl.innerHTML = modelHtmlList.join('');
             }
 
             if (orphanCaches && orphanCaches.length > 0) {
-                orphanList.innerHTML = '';
-                orphanCaches.forEach(oc => {
-                    const item = document.createElement('div');
-                    item.className = 'model-item';
-                    item.style.background = '#ffffff';
-                    item.innerHTML = `
-                        <div class="model-info">
-                            <div class="model-name" style="color: #9a3412;">📦 ${escapeHtml(oc.id)}</div>
-                            <div class="model-id">${escapeHtml(oc.id)}</div>
-                            <div class="model-badges"><span class="badge badge-orphan">💾 キャッシュ容量: ${escapeHtml(oc.sizeFormatted)}</span></div>
-                        </div>
-                        <div class="model-actions">
-                            <button onclick="restoreOrphanModel('${escapeHtml(oc.id)}')" class="btn btn-secondary btn-sm">➕ 一覧に再追加</button>
-                            <button onclick="deleteOrphanCache('${escapeHtml(oc.id)}', '${escapeHtml(oc.sizeFormatted)}')" class="btn btn-danger btn-sm">🗑️ キャッシュ完全消去</button>
-                        </div>
-                    `;
-                    orphanList.appendChild(item);
-                });
+                const orphanHtmlList = await Promise.all(orphanCaches.map(oc => {
+                    return jhtml.render('tpl-orphan-item', oc);
+                }));
+                orphanList.innerHTML = orphanHtmlList.join('');
                 orphanCard.style.display = 'block';
             } else {
                 orphanCard.style.display = 'none';
             }
-        } catch (e) { listEl.innerHTML = `<div style="color: red;">通信エラー: ${e.message}</div>`; }
+        } catch (e) { listEl.innerHTML = jhtml.html`<div style="color: red;">通信エラー: ${e.message}</div>`; }
     }
 
     async function switchModel(modelId) {
@@ -717,14 +725,14 @@
             const json = await res.json();
             if (json.success) {
                 resultBox.style.background = '#f0fdf4'; resultBox.style.color = '#166534'; resultBox.style.border = '1px solid #bbf7d0';
-                resultBox.innerHTML = `✅ <strong>接続成功！</strong> サーバー応答: <code>${escapeHtml(json.data.reply)}</code>`;
+                resultBox.innerHTML = jhtml.html`✅ <strong>接続成功！</strong> サーバー応答: <code>${json.data.reply}</code>`;
             } else {
                 resultBox.style.background = '#fee2e2'; resultBox.style.color = '#b91c1c'; resultBox.style.border = '1px solid #fecaca';
-                resultBox.innerHTML = `❌ <strong>接続失敗:</strong> ${escapeHtml(json.error)}`;
+                resultBox.innerHTML = jhtml.html`❌ <strong>接続失敗:</strong> ${json.error}`;
             }
         } catch (e) {
             resultBox.style.background = '#fee2e2'; resultBox.style.color = '#b91c1c'; resultBox.style.border = '1px solid #fecaca';
-            resultBox.innerHTML = `❌ <strong>通信エラー:</strong> ${escapeHtml(e.message)}`;
+            resultBox.innerHTML = jhtml.html`❌ <strong>通信エラー:</strong> ${e.message}`;
         }
     });
 
@@ -823,14 +831,14 @@
             const json = await res.json();
             if (json.success) {
                 resultBox.style.background = '#f0fdf4'; resultBox.style.color = '#166534'; resultBox.style.border = '1px solid #bbf7d0';
-                resultBox.innerHTML = `✅ <strong>接続成功！</strong> OpenAI応答: <code>${escapeHtml(json.data.reply)}</code>`;
+                resultBox.innerHTML = jhtml.html`✅ <strong>接続成功！</strong> OpenAI応答: <code>${json.data.reply}</code>`;
             } else {
                 resultBox.style.background = '#fee2e2'; resultBox.style.color = '#b91c1c'; resultBox.style.border = '1px solid #fecaca';
-                resultBox.innerHTML = `❌ <strong>接続失敗:</strong> ${escapeHtml(json.error)}`;
+                resultBox.innerHTML = jhtml.html`❌ <strong>接続失敗:</strong> ${json.error}`;
             }
         } catch (e) {
             resultBox.style.background = '#fee2e2'; resultBox.style.color = '#b91c1c'; resultBox.style.border = '1px solid #fecaca';
-            resultBox.innerHTML = `❌ <strong>通信エラー:</strong> ${escapeHtml(e.message)}`;
+            resultBox.innerHTML = jhtml.html`❌ <strong>通信エラー:</strong> ${e.message}`;
         }
     });
 

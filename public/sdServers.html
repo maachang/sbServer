@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>sd-server 設定 - sdServer</title>
     <link rel="stylesheet" href="/css/common.css">
+    <script src="/jhtml.browser.js"></script>
     <style>
         .container { max-width: 1000px; margin: 0 auto; padding: 24px 16px; }
 
@@ -459,6 +460,50 @@
     </div>
 </div>
 
+<!-- JHTML サーバーアイテムテンプレート -->
+<script type="text/jhtml" id="tpl-server-item">
+    <div class="server-item <%= isActive ? 'is-active' : '' %>">
+        <div>
+            <div class="server-header">
+                <div class="server-name">
+                    <span>${name || id}</span>
+                    <%- typeBadgeHtml %>
+                    <% if (isActive) { %>
+                        <span class="badge-active">デフォルト</span>
+                    <% } %>
+                </div>
+                <span class="badge-endpoint">${endpoint || '/sdapi/v1/txt2img'}</span>
+            </div>
+
+            <div class="server-url">🌐 ${baseUrl || ''}${endpoint || ''}</div>
+            
+            <div class="server-desc">${description || '説明なし'}</div>
+
+            <%- defaultsHtml %>
+
+            <div class="server-meta">
+                <span>⏱️ タイムアウト: ${timeoutSec}秒</span>
+                <span>🔑 ID: <code>${id}</code></span>
+            </div>
+
+            <div id="testResult_${id}" class="test-status"></div>
+        </div>
+
+        <div class="server-actions">
+            <div>
+                <button type="button" class="btn btn-secondary btn-xs test-btn" data-id="${id}">⚡ 接続テスト</button>
+            </div>
+            <div style="display: flex; gap: 6px;">
+                <% if (!isActive) { %>
+                    <button type="button" class="btn btn-success btn-xs set-active-btn" data-id="${id}">★ デフォルトに設定</button>
+                <% } %>
+                <button type="button" class="btn btn-secondary btn-xs edit-btn" data-id="${id}">✏️ 編集</button>
+                <button type="button" class="btn btn-outline-danger btn-xs delete-btn" data-id="${id}">🗑️</button>
+            </div>
+        </div>
+    </div>
+</script>
+
 <script>
     let serverConfig = null;
 
@@ -515,11 +560,16 @@
             return;
         }
 
-        servers.forEach(srv => {
+        const typeBadgeMap = {
+            'sd15': '<span style="background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">🏷️ SD 1.5系</span>',
+            'sdxl': '<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">⚡ SDXL系</span>',
+            'natural': '<span style="background: #ede9fe; color: #5b21b6; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">🧠 自然言語型</span>'
+        };
+
+        const serverHtmlList = await Promise.all(servers.map(srv => {
             const isActive = srv.id === activeId;
             const timeoutSec = Math.round((srv.timeoutMs || 600000) / 1000);
 
-            // 固有defaults表示
             let defaultsHtml = '';
             if (srv.defaults && Object.keys(srv.defaults).length > 0) {
                 const parts = [];
@@ -529,57 +579,22 @@
                 if (srv.defaults.sampler_name) parts.push(`🎯 ${srv.defaults.sampler_name}`);
                 defaultsHtml = `<div class="server-defaults-badge"><strong>⚙️ 固有defaults:</strong> ${parts.join(' | ')}</div>`;
             } else {
-                defaultsHtml = `<div style="font-size: 11px; color: #94a3b8; margin-bottom: 10px;">⚙️ 固有設定なし（共通デフォルトを適用）</div>`;
+                defaultsHtml = '<div style="font-size: 11px; color: #94a3b8; margin-bottom: 10px;">⚙️ 固有設定なし（共通デフォルトを適用）</div>';
             }
 
-            const typeBadgeMap = {
-                'sd15': '<span style="background: #e0e7ff; color: #3730a3; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">🏷️ SD 1.5系</span>',
-                'sdxl': '<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">⚡ SDXL系</span>',
-                'natural': '<span style="background: #ede9fe; color: #5b21b6; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: 600;">🧠 自然言語型</span>'
-            };
             const mType = srv.modelType || 'sd15';
-            const mBadge = typeBadgeMap[mType] || `<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 11px;">🏷️ ${escapeHtml(mType)}</span>`;
+            const typeBadgeHtml = typeBadgeMap[mType] || `<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px; font-size: 11px;">🏷️ ${jhtml.escape(mType)}</span>`;
 
-            const card = document.createElement('div');
-            card.className = `server-item ${isActive ? 'is-active' : ''}`;
-            card.innerHTML = `
-                <div>
-                    <div class="server-header">
-                        <div class="server-name">
-                            <span>${escapeHtml(srv.name || srv.id)}</span>
-                            ${mBadge}
-                            ${isActive ? '<span class="badge-active">デフォルト</span>' : ''}
-                        </div>
-                        <span class="badge-endpoint">${escapeHtml(srv.endpoint || '/sdapi/v1/txt2img')}</span>
-                    </div>
+            return jhtml.render('tpl-server-item', {
+                ...srv,
+                isActive,
+                timeoutSec,
+                defaultsHtml,
+                typeBadgeHtml
+            });
+        }));
 
-                    <div class="server-url">🌐 ${escapeHtml(srv.baseUrl || '')}${escapeHtml(srv.endpoint || '')}</div>
-                    
-                    <div class="server-desc">${escapeHtml(srv.description || '説明なし')}</div>
-
-                    ${defaultsHtml}
-
-                    <div class="server-meta">
-                        <span>⏱️ タイムアウト: ${timeoutSec}秒</span>
-                        <span>🔑 ID: <code>${escapeHtml(srv.id)}</code></span>
-                    </div>
-
-                    <div id="testResult_${srv.id}" class="test-status"></div>
-                </div>
-
-                <div class="server-actions">
-                    <div>
-                        <button type="button" class="btn btn-secondary btn-xs test-btn" data-id="${srv.id}">⚡ 接続テスト</button>
-                    </div>
-                    <div style="display: flex; gap: 6px;">
-                        ${!isActive ? `<button type="button" class="btn btn-success btn-xs set-active-btn" data-id="${srv.id}">★ デフォルトに設定</button>` : ''}
-                        <button type="button" class="btn btn-secondary btn-xs edit-btn" data-id="${srv.id}">✏️ 編集</button>
-                        <button type="button" class="btn btn-outline-danger btn-xs delete-btn" data-id="${srv.id}">🗑️</button>
-                    </div>
-                </div>
-            `;
-            listEl.appendChild(card);
-        });
+        listEl.innerHTML = serverHtmlList.join('');
 
         // ボタンイベント付与
         document.querySelectorAll('.set-active-btn').forEach(btn => {

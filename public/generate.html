@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>画像生成 - sdServer</title>
     <link rel="stylesheet" href="/css/common.css">
+    <script src="/jhtml.browser.js"></script>
     <style>
         .container {
             max-width: 1100px;
@@ -862,7 +863,7 @@
                 btn.type = 'button';
                 btn.className = (t.id === currentThemeId) ? 'theme-pill-btn active' : 'theme-pill-btn';
                 btn.dataset.themeId = t.id;
-                btn.innerHTML = `<span>${escapeHtml(t.icon || '🎨')}</span> <span>${escapeHtml(t.name.split(' ')[0])}</span>`;
+                btn.innerHTML = jhtml.html`<span>${t.icon || '🎨'}</span> <span>${t.name.split(' ')[0]}</span>`;
 
                 btn.addEventListener('click', () => {
                     if (themeSelect) {
@@ -1050,7 +1051,7 @@
                 notice.style.background = '#fdf4ff';
                 notice.style.border = '1px solid #f0abfc';
                 notice.style.color = '#86198f';
-                notice.innerHTML = `
+                notice.innerHTML = jhtml.html`
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                         <span style="font-weight: 700; font-size: 13px;">✨ AI最適化プレビュー <span style="font-size: 11px; font-weight: 600; background: #fae8ff; color: #86198f; padding: 2px 6px; border-radius: 4px; border: 1px solid #e879f9; margin-left: 6px;">${modelTypeLabel}</span></span>
                         <button type="button" id="closeAssistNoticeBtn" class="btn-xs" style="background: transparent; border: none; cursor: pointer; color: #86198f; font-size: 14px; padding: 0 4px;" title="閉じる">✕</button>
@@ -1058,17 +1059,17 @@
                     <div style="margin-bottom: 6px;">
                         <strong style="color: #4a044e; font-size: 12px;">最適化後プロンプト:</strong>
                         <div style="background: #ffffff; border: 1px solid #f5d0fe; padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin-top: 2px; word-break: break-all; color: #1f2937;">
-                            ${escapeHtml(optimizedPrompt)}
+                            ${optimizedPrompt}
                         </div>
                     </div>
-                    ${optimizedNeg ? `
+                    ${optimizedNeg ? jhtml.raw(jhtml.html`
                     <div style="margin-bottom: 8px;">
                         <strong style="color: #4a044e; font-size: 12px;">推奨ネガティブプロンプト:</strong>
                         <div style="background: #ffffff; border: 1px solid #f5d0fe; padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin-top: 2px; word-break: break-all; color: #1f2937;">
-                            ${escapeHtml(optimizedNeg)}
+                            ${optimizedNeg}
                         </div>
                     </div>
-                    ` : ''}
+                    `) : ''}
                     <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
                         <button type="button" id="applyAssistBtn" class="btn-xs" style="background: #a21caf; color: #ffffff; border: none; font-weight: 600; padding: 5px 12px; border-radius: 4px; cursor: pointer;">✅ 入力欄に適用する</button>
                     </div>
@@ -1127,13 +1128,13 @@
             notice.style.background = '#f0fdf4';
             notice.style.border = '1px solid #bbf7d0';
             notice.style.color = '#166534';
-            notice.innerHTML = `
+            notice.innerHTML = jhtml.html`
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                     <strong>🌐 英訳プレビュー:</strong>
                     <button type="button" id="closePromptTransBtn" class="btn-xs" style="background: transparent; border: none; cursor: pointer; color: #166534; font-size: 14px;" title="閉じる">✕</button>
                 </div>
                 <div style="background: #ffffff; border: 1px solid #dcfce7; padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin-bottom: 6px; word-break: break-all; color: #1f2937;">
-                    ${escapeHtml(translated)}
+                    ${translated}
                 </div>
                 <div style="display: flex; justify-content: flex-end;">
                     <button type="button" id="applyTransPromptBtn" class="btn-xs" style="background: #15803d; color: #ffffff; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer;">✅ プロンプト欄に適用</button>
@@ -1170,13 +1171,13 @@
             notice.style.background = '#f0fdf4';
             notice.style.border = '1px solid #bbf7d0';
             notice.style.color = '#166534';
-            notice.innerHTML = `
+            notice.innerHTML = jhtml.html`
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
                     <strong>🌐 ネガティブ英訳プレビュー:</strong>
                     <button type="button" id="closeNegTransBtn" class="btn-xs" style="background: transparent; border: none; cursor: pointer; color: #166534; font-size: 14px;" title="閉じる">✕</button>
                 </div>
                 <div style="background: #ffffff; border: 1px solid #dcfce7; padding: 6px 10px; border-radius: 4px; font-family: monospace; font-size: 12px; margin-bottom: 6px; word-break: break-all; color: #1f2937;">
-                    ${escapeHtml(translated)}
+                    ${translated}
                 </div>
                 <div style="display: flex; justify-content: flex-end;">
                     <button type="button" id="applyTransNegBtn" class="btn-xs" style="background: #15803d; color: #ffffff; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer;">✅ ネガティブ欄に適用</button>
@@ -1482,7 +1483,7 @@
                     if (item.translated_prompt) {
                         const notice = document.getElementById('promptTransNotice');
                         notice.style.display = 'block';
-                        notice.innerHTML = `<strong>英訳:</strong> ${escapeHtml(item.translated_prompt)}`;
+                        notice.innerHTML = jhtml.html`<strong>英訳:</strong> ${item.translated_prompt}`;
                     }
                 }
             } catch (e) {
